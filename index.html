@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Интерактивный тренажёр к практическим работам №1–3 по дисциплине «Интеллектуальные системы управления». Составитель: Канетова Д.Э.">
+<title>Тренажёр ИСУ</title>
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: пульт инженера — шапка с вкладками, слева панель управления, справа приборы и графики */
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --ink:#16202b; --muted:#5b6876; --line:#d8dee5; --grid:#e8ecf0;
+  --accent:#1f5fbf; --accent-soft:#e3ecfa; --open:#c2621a; --closed:#1f5fbf;
+  --good:#1d7a4c; --good-soft:#e1f2e8; --warn:#a86a00; --bad:#b4322e; --bad-soft:#fbe6e4; --sla:#b4322e;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --panel:#18202a; --ink:#e6ebf0; --muted:#97a3b0; --line:#2c3743; --grid:#222c37;
+  --accent:#6ea2ff; --accent-soft:#1c2c48; --open:#f0964f; --closed:#6ea2ff;
+  --good:#5cc98f; --good-soft:#163526; --warn:#e3a93a; --bad:#f07b72; --bad-soft:#3e1e1d; --sla:#f07b72; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --panel:#18202a; --ink:#e6ebf0; --muted:#97a3b0; --line:#2c3743; --grid:#222c37;
+  --accent:#6ea2ff; --accent-soft:#1c2c48; --open:#f0964f; --closed:#6ea2ff;
+  --good:#5cc98f; --good-soft:#163526; --warn:#e3a93a; --bad:#f07b72; --bad-soft:#3e1e1d; --sla:#f07b72; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:16px}
+h1{font-family:var(--f-display);font-size:28px;line-height:1.1;margin:0;letter-spacing:.01em;text-wrap:balance}
+.sub{color:var(--muted);font-size:13.5px;margin:4px 0 0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tab{appearance:none;border:0;background:none;color:var(--muted);font:600 14px var(--f-body);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tab small{font:500 11px var(--f-mono);color:var(--muted);margin-right:6px;letter-spacing:.04em}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+.panel h2{font-family:var(--f-display);font-size:17px;margin:0 0 10px;letter-spacing:.01em}
+.panel h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px;font-weight:600}
+.panel h3:first-child{margin-top:0}
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin-bottom:12px}
+.ctrl label{font-size:13.5px}
+.ctrl output{font:600 13px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--accent)}
+.ctrl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.hint{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:8px 0}
+.check input{margin-top:3px;accent-color:var(--accent)}
+.seg{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1 1 auto;appearance:none;border:0;background:var(--panel);color:var(--ink);font:500 13px var(--f-body);padding:7px 8px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:#fff;font:600 13px var(--f-body);padding:8px 12px;border-radius:5px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:5px;padding:10px 12px;background:var(--panel)}
+.kpi .lbl{font-size:12px;color:var(--muted)}
+.kpi .row{display:flex;justify-content:space-between;gap:8px;font:600 15px var(--f-mono);font-variant-numeric:tabular-nums;margin-top:4px}
+.kpi .row span:first-child{color:var(--open)} .kpi .row span:last-child{color:var(--closed)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+canvas{width:100%;display:block}
+.chartbox{position:relative}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--grid);padding:6px 8px;text-align:left;white-space:nowrap}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font:600 11.5px var(--f-mono);padding:2px 7px;border-radius:10px}
+.pill.ok{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.na{background:var(--grid);color:var(--muted)}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 12px;border-radius:0 5px 5px 0;font-size:13.5px}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note.good{border-left-color:var(--good);background:var(--good-soft)}
+.task{font-size:13.5px;color:var(--ink)}
+.task ol{margin:6px 0 0;padding-left:20px} .task li{margin-bottom:4px}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 12.5px var(--f-mono);padding:3px 8px;border-radius:4px;border:1px solid var(--line);background:var(--panel);color:var(--muted)}
+.chip.on{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+.chip.act{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.chip.state{border-color:var(--warn);color:var(--warn)}
+.trace{list-style:none;margin:0;padding:0;counter-reset:s}
+.trace li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--grid);font-size:13.5px}
+.trace li::before{content:counter(s);font:600 12px var(--f-mono);color:var(--muted);text-align:right;padding-top:1px}
+.trace .r{font-family:var(--f-mono);font-weight:600;color:var(--accent)}
+.trace .pending{color:var(--muted)}
+.meas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.meas .m label{display:block;font-size:12.5px;color:var(--muted)}
+.meas input[type=number]{width:100%;font:500 14px var(--f-mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink)}
+.meas .na{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);margin-top:3px}
+.thr{display:grid;grid-template-columns:1fr auto auto;gap:6px 8px;align-items:center;font-size:13px}
+.thr input{width:64px;font:500 13px var(--f-mono);padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink)}
+.strip{display:grid;grid-template-columns:repeat(21,minmax(0,1fr));gap:2px}
+.strip div{height:28px;border-radius:2px;font:500 9.5px var(--f-mono);display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;color:var(--ink)}
+.small{font-size:12.5px;color:var(--muted)}
+#rules td:nth-child(2){white-space:normal}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:700px){.two{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- Отчёт ---- */
+@media (min-width:861px){.rep-side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
+.fld{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.fld label{font-size:12.5px;color:var(--muted)}
+.fld input,.fld select,.rf textarea,.rf input,.rtab input{font:14px var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink);width:100%}
+.rf{margin-bottom:16px}
+.rf > label,.rf > .q{display:block;font-weight:600;font-size:14px;margin-bottom:4px}
+.rf .q{font-weight:500}
+.rf textarea{min-height:76px;resize:vertical;line-height:1.45}
+.rf textarea.mono{font-family:var(--f-mono);font-size:13px;min-height:200px}
+.rf .help{font-size:12.5px;color:var(--muted);margin:0 0 6px}
+.rsec{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+.rsec:first-child{border-top:0;padding-top:0;margin-top:0}
+.rsec h3{font-family:var(--f-display);font-size:16px;text-transform:none;letter-spacing:.01em;color:var(--ink);margin:0 0 8px}
+.rtab{overflow-x:auto}
+.rtab table{min-width:560px}
+.rtab td{padding:3px;white-space:normal;vertical-align:top}
+.rtab td.fixed{font-size:13px;padding:8px 6px;color:var(--ink);width:30%}
+.rtab input{padding:5px 6px;font-size:13px}
+.auto{border:1px dashed var(--accent);border-radius:5px;padding:10px 12px;background:var(--accent-soft);font-size:13px}
+.auto b{color:var(--accent)}
+.req::after{content:" *";color:var(--bad)}
+.meter{height:8px;border-radius:4px;background:var(--grid);overflow:hidden}
+.meter div{height:100%;background:var(--good);width:0;transition:width .2s}
+.missing{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--bad);max-height:180px;overflow:auto}
+.linkbtn{appearance:none;border:0;background:none;color:var(--accent);font:500 12.5px var(--f-body);padding:0;cursor:pointer;text-decoration:underline;margin-top:10px}
+.imgdrop{border:1px dashed var(--line);border-radius:5px;padding:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.imgdrop img{max-height:160px;border:1px solid var(--line);background:#fff}
+.preview-wrap{position:fixed;inset:0;z-index:20;background:rgba(10,16,24,.55);overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.preview-bar{max-width:820px;margin:0 auto 10px;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.preview-bar .btn{background:#fff}
+.sheet{max-width:820px;margin:0 auto;background:#fff;color:#000;padding:56px 60px;border-radius:2px;font-family:"Times New Roman",Times,serif;font-size:15px;line-height:1.5;overflow-x:auto}
+.sheet table{border-collapse:collapse;width:100%;margin:6px 0 12px;font-size:13px}
+.sheet th,.sheet td{border:1px solid #000;padding:4px 6px;white-space:normal;text-align:left;color:#000;text-transform:none;letter-spacing:0;font-weight:normal;font-family:"Times New Roman",Times,serif}
+.sheet th{font-weight:bold;background:#f0f0f0}
+.sheet img{max-width:100%}
+#print-area{display:none}
+@media print{
+  body{background:#fff}
+  .wrap,.preview-wrap{display:none!important}
+  #print-area{display:block!important;color:#000;font-family:"Times New Roman",Times,serif;font-size:14pt;line-height:1.5}
+  #print-area table{border-collapse:collapse;width:100%;font-size:11pt;margin:6pt 0 10pt}
+  #print-area th,#print-area td{border:1px solid #000;padding:3pt 5pt;text-align:left;vertical-align:top}
+  #print-area th{background:#eee}
+  #print-area img{max-width:100%}
+  .pb{break-before:page;page-break-before:always}
+  .pb-screen{display:none}
+  @page{size:A4;margin:20mm 15mm 20mm 30mm}
+}
+
+.sheet .pb-screen{border:0;border-top:1px dashed #999;margin:28px -20px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Тренажёр «Интеллектуальные системы управления»</h1>
+      <p class="sub">Практические работы №1–3 · направление 710500 · МУ им. К.Ш. Токтомаматова · все расчёты идут в браузере</p>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-pr1" aria-controls="pr1" aria-selected="true"><small>ПР-1</small>Контур управления</button>
+    <button class="tab" role="tab" id="t-pr2" aria-controls="pr2" aria-selected="false"><small>ПР-2</small>Данные и контракт</button>
+    <button class="tab" role="tab" id="t-pr3" aria-controls="pr3" aria-selected="false"><small>ПР-3</small>База знаний</button>
+    <button class="tab" role="tab" id="t-rep" aria-controls="rep" aria-selected="false"><small>СДАЧА</small>Отчёт</button>
+  </nav>
+
+  <!-- ============ ПР-1 ============ -->
+  <section id="pr1" role="tabpanel" aria-labelledby="t-pr1">
+    <div class="grid">
+      <aside class="panel">
+        <h2>Политика замкнутого контура</h2>
+        <div class="ctrl"><label for="up">Порог добавления (up)</label><output id="o-up"></output><input type="range" id="up" min="150" max="400" step="50" value="250"></div>
+        <div class="ctrl"><label for="down">Порог удаления (down)</label><output id="o-down"></output><input type="range" id="down" min="60" max="200" step="20" value="120"></div>
+        <div class="ctrl"><label for="cd">Cooldown</label><output id="o-cd"></output><input type="range" id="cd" min="0" max="10" step="1" value="5"></div>
+        <h3>Защитные ограничения</h3>
+        <div class="ctrl"><label for="nmin">N_MIN, экземпляров</label><output id="o-nmin"></output><input type="range" id="nmin" min="1" max="4" step="1" value="2"></div>
+        <div class="ctrl"><label for="nmax">N_MAX, экземпляров</label><output id="o-nmax"></output><input type="range" id="nmax" min="4" max="12" step="1" value="10"></div>
+        <h3>Эксперимент</h3>
+        <label class="check"><input type="checkbox" id="fc"> <span>Прогноз нагрузки на 10 минут вперёд (идеальный) — для вопроса из задания 4</span></label>
+        <div class="btns" style="margin-top:12px">
+          <button class="btn" id="log-add">Записать опыт</button>
+          <button class="btn ghost" id="reset1">По умолчанию</button>
+        </div>
+        <p class="hint" style="margin-top:10px">Задержка = 60 / (1 − ρ), ρ = нагрузка / (100 × n). Цель SLA: P95 ≤ 300 мс. Нагрузка с всплеском на минутах 90–119 совпадает с pr1_loop.py.</p>
+      </aside>
+      <div class="stack">
+        <div class="kpis" id="kpis"></div>
+        <div class="panel">
+          <h2>Задержка P95, мс</h2>
+          <div class="chartbox"><canvas id="c-lat" height="240"></canvas></div>
+          <div class="legend"><span><i style="background:var(--open)"></i>Разомкнутый (расписание 4 → 3)</span><span><i style="background:var(--closed)"></i>Замкнутый</span><span><i style="background:var(--sla)"></i>SLA 300 мс</span></div>
+        </div>
+        <div class="panel">
+          <h2>Число экземпляров U(t)</h2>
+          <div class="chartbox"><canvas id="c-n" height="150"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Журнал экспериментов (задание 4)</h2>
+          <div class="tbl"><table id="log"><thead><tr><th class="num">№</th><th class="num">up</th><th class="num">down</th><th class="num">cooldown</th><th class="num">N_MAX</th><th>Прогноз</th><th class="num">SLA, мин</th><th class="num">Стоимость</th><th class="num">Переключения</th></tr></thead><tbody></tbody></table></div>
+          <p class="small" id="log-empty">Нажмите «Записать опыт», чтобы сохранить текущие параметры и итоги. Нужно не менее четырёх строк.</p>
+          <div class="task note" style="margin-top:10px"><b>Задание.</b> Найдите комбинацию, которая даёт не более 10 минут нарушения SLA при наименьшей стоимости. Затем включите прогноз и объясните, что изменилось.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ПР-2 ============ -->
+  <section id="pr2" role="tabpanel" aria-labelledby="t-pr2" hidden>
+    <div class="grid">
+      <aside class="panel">
+        <h2>Предобработка</h2>
+        <h3>Объединение рядов</h3>
+        <div class="seg" id="seg-join"><button data-v="time" aria-pressed="true">По времени</button><button data-v="row" aria-pressed="false">По номеру строки</button></div>
+        <h3>Агрегация CPU до 1 минуты</h3>
+        <div class="seg" id="seg-agg"><button data-v="mean" aria-pressed="true">Среднее</button><button data-v="sum" aria-pressed="false">Сумма</button></div>
+        <h3>Невозможные значения (180 %, −5 %)</h3>
+        <div class="seg" id="seg-out"><button data-v="nan" aria-pressed="true">Пусто (NaN)</button><button data-v="clip" aria-pressed="false">Обрезать</button><button data-v="keep" aria-pressed="false">Оставить</button></div>
+        <h3>Окно cpu_avg</h3>
+        <div class="seg" id="seg-win"><button data-v="5" aria-pressed="true">5 мин</button><button data-v="3" aria-pressed="false">3 мин</button></div>
+        <h3>Контракт модели</h3>
+        <div class="ctrl"><label for="es-max">error_share, максимум</label><output id="o-es"></output><input type="range" id="es-max" min="0.02" max="1" step="0.01" value="1"></div>
+        <p class="hint">Уменьшите максимум до 0,05 — контракт начнёт отбрасывать минуты инцидента. Это пример того, как граница контракта влияет на поведение системы.</p>
+      </aside>
+      <div class="stack">
+        <div class="kpis" id="kpis2"></div>
+        <div class="panel" id="rowpanel" hidden>
+          <h2>Что получается при объединении по номеру строки</h2>
+          <div class="tbl"><table><thead><tr><th class="num">Строка</th><th>Время CPU</th><th class="num">cpu, %</th><th>Время температуры</th><th class="num">t, °C</th></tr></thead><tbody id="rowtbl"></tbody></table></div>
+          <div class="note bad" style="margin-top:10px">В одной строке оказались измерения, сделанные в разное время: CPU на 5-й секунде и температура на 50-й. После строки 180 температуры нет вовсе, а CPU идёт ещё 27 минут. Модель на таких данных учится на случайных парах.</div>
+        </div>
+        <div class="panel">
+          <h2>cpu_avg и доля ошибок 5xx по минутам</h2>
+          <div class="chartbox"><canvas id="c-p2" height="220"></canvas></div>
+          <div class="legend"><span><i style="background:var(--closed)"></i>cpu_avg, % (левая шкала)</span><span><i style="background:var(--bad)"></i>error_share, % (правая шкала)</span></div>
+        </div>
+        <div class="panel">
+          <h2>Вектор признаков после предобработки</h2>
+          <div class="tbl"><table><thead><tr><th>Время</th><th class="num">cpu</th><th class="num">cpu_avg</th><th class="num">t, °C</th><th class="num">temp_rate</th><th class="num">requests</th><th class="num">5xx</th><th class="num">error_share</th><th>Контракт</th></tr></thead><tbody id="p2tbl"></tbody></table></div>
+        </div>
+        <div class="task note"><b>Вопросы к заданию 3.</b><ol><li>Переключите агрегацию CPU на «Сумма». Почему значения стали бессмысленными?</li><li>Выберите «По номеру строки» и объясните таблицу.</li><li>Сравните «Пусто», «Обрезать» и «Оставить»: как меняется среднее в минуты 8 и 20?</li><li>Найдите инцидент. По какому признаку он виден, а по какому нет?</li></ol></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ПР-3 ============ -->
+  <section id="pr3" role="tabpanel" aria-labelledby="t-pr3" hidden>
+    <div class="grid">
+      <aside class="panel">
+        <h2>Измерения</h2>
+        <div class="btns" id="presets" style="margin-bottom:12px"></div>
+        <div class="meas">
+          <div class="m"><label for="m-cpu">cpu, %</label><input type="number" id="m-cpu" min="0" max="100" value="92"><label class="na"><input type="checkbox" id="na-cpu"> нет данных</label></div>
+          <div class="m"><label for="m-ram">ram, %</label><input type="number" id="m-ram" min="0" max="100" value="88"><label class="na"><input type="checkbox" id="na-ram"> нет данных</label></div>
+          <div class="m"><label for="m-temperature">temperature, °C</label><input type="number" id="m-temperature" min="0" max="120" value="79"><label class="na"><input type="checkbox" id="na-temperature"> нет данных</label></div>
+          <div class="m"><label for="m-p95_latency">p95_latency, мс</label><input type="number" id="m-p95_latency" min="0" max="5000" value="640"><label class="na"><input type="checkbox" id="na-p95_latency"> нет данных</label></div>
+        </div>
+        <h3 style="margin-top:16px">Пороги термов</h3>
+        <div class="thr" id="thr"></div>
+        <h3>Исправления базы (задание 3)</h3>
+        <label class="check"><input type="checkbox" id="fix-gap"> <span>Добавить терм <code>cpu_medium</code> (60 ≤ cpu &lt; 80) и правило R8: cpu_medium И latency_high → STATE:watch</span></label>
+        <label class="check"><input type="checkbox" id="fix-meta"> <span>Метаправило: STATE:normal выводится только после завершения вывода и только если нет действий</span></label>
+      </aside>
+      <div class="stack">
+        <div class="panel">
+          <h2>Механизм прямого вывода</h2>
+          <h3>Исходные факты и их происхождение (provenance)</h3>
+          <div class="chips" id="facts"></div>
+          <h3>Шаги вывода</h3>
+          <ol class="trace" id="trace"></ol>
+          <div class="btns" style="margin-top:12px"><button class="btn" id="step">Следующий шаг</button><button class="btn ghost" id="runall">Выполнить всё</button><button class="btn ghost" id="restart">Сначала</button></div>
+          <h3>Итог</h3>
+          <div class="chips" id="result"></div>
+          <div id="conflict" style="margin-top:10px"></div>
+        </div>
+        <div class="two">
+          <div class="panel">
+            <h2>Покрытие CPU термами</h2>
+            <div class="strip" id="strip"></div>
+            <p class="small" id="strip-note" style="margin-top:8px"></p>
+          </div>
+          <div class="panel">
+            <h2>База правил</h2>
+            <div class="tbl"><table><thead><tr><th>Правило</th><th>Условие → заключение</th><th class="num">Приор.</th></tr></thead><tbody id="rules"></tbody></table></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Тесты базы знаний</h2>
+          <div class="tbl"><table><thead><tr><th>Сценарий</th><th class="num">cpu</th><th class="num">ram</th><th class="num">t</th><th class="num">p95</th><th>Ожидается</th><th>Получено</th><th>Тест</th></tr></thead><tbody id="tests"></tbody></table></div>
+          <p class="small" style="margin-top:8px">Первые четыре — исходные тесты из pr3_rules.py. Последние три проверяют ещё и состояние. Два из них не пройдут, пока база не исправлена. Чтобы пройти вывод по шагам, нажмите «Сначала», затем «Следующий шаг».</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ОТЧЁТ ============ -->
+  <section id="rep" role="tabpanel" aria-labelledby="t-rep" hidden>
+    <div class="grid">
+      <aside class="panel rep-side">
+        <h2>Сведения о студенте</h2>
+        <div class="fld"><label for="r-fio">ФИО</label><input id="r-fio" data-common="fio" placeholder="Иванов Иван Иванович"></div>
+        <div class="fld"><label for="r-group">Группа</label><input id="r-group" data-common="group" placeholder="ИТУ-4-22"></div>
+        <div class="fld"><label for="r-variant">Вариант</label><select id="r-variant" data-common="variant"></select></div>
+        <div class="fld"><label for="r-method">Способ выполнения</label><select id="r-method" data-common="method"><option>Тренажёр</option><option>Python (Google Colab)</option><option>Excel</option></select></div>
+        <div class="fld"><label for="r-dept">Кафедра</label><input id="r-dept" data-common="dept" placeholder="название кафедры"></div>
+        <div class="fld"><label for="r-teacher">Проверил</label><input id="r-teacher" data-common="teacher"></div>
+        <h3>Работа</h3>
+        <div class="seg" id="seg-work"><button data-v="1" aria-pressed="true">№1</button><button data-v="2" aria-pressed="false">№2</button><button data-v="3" aria-pressed="false">№3</button></div>
+        <h3>Готовность</h3>
+        <div class="meter"><div id="r-bar"></div></div>
+        <p class="small" id="r-progress"></p>
+        <ul class="missing" id="r-missing"></ul>
+        <div class="btns" style="margin-top:12px">
+          <button class="btn" id="r-word">Скачать отчёт (.docx)</button>
+          <button class="btn ghost" id="r-print">Печать / PDF</button>
+          <button class="btn ghost" id="r-preview">Предпросмотр</button>
+        </div>
+        <p class="hint" style="margin-top:10px">Всё, что вы вводите, сохраняется в этом браузере автоматически. Результаты моделирования берутся с вкладок ПР-1, ПР-2 и ПР-3 в момент скачивания: сначала проведите эксперимент, потом скачивайте.</p>
+        <button class="linkbtn" id="r-clear">Очистить поля этой работы</button>
+        <p class="small" id="r-clear-confirm" hidden>Удалить всё, что введено для этой работы? <button class="linkbtn" id="r-clear-yes">Да, очистить</button> · <button class="linkbtn" id="r-clear-no">Отмена</button></p>
+      </aside>
+      <div class="stack">
+        <div class="panel" id="r-form"></div>
+      </div>
+    </div>
+    <div class="preview-wrap" id="r-preview-wrap" hidden>
+      <div class="preview-bar"><b>Предпросмотр отчёта</b><button class="btn ghost" id="r-preview-close">Закрыть</button></div>
+      <div class="sheet" id="r-sheet"></div>
+    </div>
+  </section>
+  <footer class="small" style="margin-top:28px;border-top:1px solid var(--line);padding-top:12px">Составитель: Канетова Д.Э., к.ф.-м.н., доцент · Международный университет имени К.Ш. Токтомаматова, Жалал-Абад, 2026</footer>
+</div>
+<div id="print-area"></div>
+
+<script>
+const DATA = {"load":[275.358,245.677,255.822,264.099,248.801,263.303,265.88,242.177,286.346,282.649,266.794,276.107,288.733,279.672,282.352,266.555,298.991,294.804,299.288,274.449,324.23,303.852,297.741,335.935,306.708,287.454,304.896,278.341,330.03,309.593,306.179,334.808,295.281,329.328,291.5,313.623,306.5,347.417,352.821,322.143,340.366,325.639,337.357,317.953,303.942,302.753,335.691,363.713,334.007,321.975,358.313,332.893,330.467,332.259,325.922,322.617,304.999,333.228,323.378,341.709,317.212,292.998,318.87,344.55,311.921,302.865,296.776,297.324,306.897,291.957,330.311,301.734,305.667,323.615,322.537,294.687,300.695,304.527,288.347,262.262,296.402,297.606,287.994,265.443,273.859,265.41,267.222,288.593,289.484,273.964,569.521,568.793,555.805,552.192,540.556,547.156,579.229,555.707,534.888,530.301,521.787,537.761,535.43,505.344,531.745,513.395,540.857,519.362,540.364,505.355,505.578,512.11,521.215,511.676,482.549,501.713,497.278,488.543,483.352,517.446,183.6,175.058,195.663,186.497,181.904,193.339,187.603,184.438,192.279,180.961,166.425,169.299,166.057,176.241,156.233,144.311,172.601,150.8,141.225,175.85,159.418,177.448,162.055,153.288,151.654,162.86,166.849,159.052,167.728,149.531,173.503,147.18,172.06,186.394,193.363,203.829,155.979,191.993,200.072,198.127,170.994,192.698,216.08,167.446,198.844,210.241,185.029,206.203,183.435,189.411,191.488,208.83,206.83,224.803,198.728,213.244,232.05,228.502,202.71,235.077],"cpu":[56.22,50.91,58.14,58.96,47.46,50.12,55.91,54.2,55.47,52.19,59.18,58.84,56.06,60.38,57.8,null,57.54,52.3,59.71,56.07,55.59,53.68,61.36,55.91,54.88,55.26,58.86,58.26,58.51,58.65,65.56,55.44,55.08,53.94,59.73,61.84,56.94,54.1,54.23,60.2,60.63,59.9,55.13,58.79,58.39,58.86,61.54,59.01,60.9,58.52,59.47,60.91,52.62,57.24,56.7,56.09,57.61,64.76,55.38,62.78,52.24,57.7,59.75,61.51,62.08,62.47,57.97,57.58,62.93,58.79,54.52,55.16,56.08,61.81,60.45,62.71,58.3,60.71,62.64,58.97,62.1,57.69,58.95,58.94,55.74,62.54,58.78,60.77,62.71,62.63,63.57,60.58,59.34,60.78,54.42,55.44,56.0,57.37,63.02,57.86,60.03,66.8,60.24,64.68,58.06,61.04,58.12,60.63,65.41,55.2,63.91,63.18,59.92,56.57,62.71,60.36,63.47,62.69,69.07,61.77,58.69,63.57,63.79,68.41,66.37,64.52,69.01,58.46,60.72,59.63,61.84,57.95,66.06,62.69,57.76,59.64,65.01,67.17,71.87,75.59,65.66,60.1,55.59,65.25,60.98,62.63,61.91,63.85,68.74,65.16,63.95,60.5,58.01,62.82,64.61,71.95,65.46,68.93,63.06,60.37,61.31,62.32,73.8,62.05,68.75,61.84,69.24,67.11,65.0,65.52,63.12,67.58,64.03,61.0,60.85,66.71,72.39,66.77,65.71,67.38,71.52,67.23,64.76,70.88,68.23,72.71,67.35,61.78,61.26,73.39,73.73,66.17,65.41,72.84,62.62,63.52,null,65.63,67.24,66.66,68.72,73.05,67.83,70.1,59.38,67.43,64.31,62.86,64.27,66.5,71.55,62.63,68.11,66.1,66.78,72.15,70.34,73.59,67.67,65.55,67.49,69.41,69.19,64.2,68.95,69.55,78.75,76.24,65.37,67.68,63.02,66.56,70.23,73.84,66.15,66.5,60.57,68.56,65.0,67.18,65.84,69.02,62.41,63.62,78.05,64.43,65.24,77.02,81.33,65.07,68.33,71.21,76.81,65.99,69.0,73.13,71.81,68.61,69.62,64.7,69.29,69.22,71.26,68.15,72.3,74.51,71.12,71.95,70.8,70.63,67.78,null,70.36,79.16,77.12,72.41,67.86,null,75.76,72.08,72.99,64.13,74.86,73.01,66.79,69.38,72.36,71.56,70.22,71.01,70.45,72.11,77.42,61.31,70.66,72.35,72.87,70.23,64.73,73.11,78.74,65.73,75.36,70.62,71.73,67.8,70.7,77.28,74.44,79.08,76.89,73.97,79.22,74.04,75.63,71.16,72.65,69.62,76.41,67.77,75.64,71.78,77.26,75.61,79.92,75.59,66.41,72.46,68.08,70.72,78.87,75.4,70.09,68.86,73.07,68.11,70.32,74.28,77.68,75.52,63.95,74.36,73.46,74.86,null,65.0,70.92,75.67,67.01,79.27,74.86,76.8,71.16,76.72,77.77,74.45,74.48,74.65,70.14,73.03,73.03,75.2,77.69,69.48,73.24,79.68,70.81,70.52,74.64,77.23,73.92,79.21,77.34,77.3,76.18,83.29,73.18,66.01,80.46,72.23,74.51,79.34,67.71,69.13,67.76,71.0,75.96,76.31,75.34,68.6,65.03,74.51,72.42,76.16,77.15,74.91,77.41,75.31,76.53,null,73.72,75.24,77.75,72.91,76.58,73.45,74.06,77.86,null,69.39,68.66,65.26,71.9,77.62,73.5,75.44,79.02,79.98,74.41,80.11,75.08,71.37,72.35,68.82,71.2,73.33,77.99,81.67,69.26,76.37,70.65,76.72,74.3,67.51,78.56,72.43,72.73,70.59,72.26,76.6,74.13,76.21,76.35,null,73.55,69.02,79.2,null,79.4,76.48,74.43,76.35,82.76,83.27,75.24,75.61,79.28,71.59,76.31,74.88,76.24,71.65,68.63,66.7,70.52,73.16,73.82,82.75,79.42,71.15,null,73.37,73.86,75.74,77.48,73.64,79.25,70.43,75.02,85.38,75.88,80.72,75.35,77.31,74.75,74.3,71.86,76.69,71.56,77.63,79.3,76.42,73.81,76.76,73.71,78.68,67.61,73.58,66.96,68.93,180.0,78.48,72.02,68.88,63.02,72.7,84.55,76.6,72.61,76.7,68.59,73.64,null,74.46,77.96,76.17,77.45,72.01,78.35,81.26,70.86,71.17,80.06,73.94,80.31,72.91,80.49,75.18,75.68,80.89,73.17,70.84,72.8,76.39,68.3,77.1,72.38,79.11,64.93,71.35,67.73,71.16,75.44,73.71,null,73.76,75.2,70.33,77.18,76.98,75.85,76.52,75.47,82.4,73.9,73.0,71.19,70.06,69.19,70.6,73.85,75.45,74.3,71.01,77.65,76.99,73.37,71.38,76.16,74.7,68.13,73.63,74.93,70.26,74.6,null,79.14,78.76,72.74,75.18,64.06,69.05,72.48,69.34,76.46,81.57,68.85,70.18,74.45,79.92,68.56,74.42,80.69,66.77,68.22,71.63,71.21,76.52,74.21,66.11,75.25,70.85,78.23,70.59,70.53,75.21,76.07,74.78,66.22,75.08,68.76,73.81,67.14,null,69.55,67.62,75.57,73.65,70.2,78.43,70.83,72.69,73.6,70.02,74.35,null,70.75,77.81,68.17,62.65,78.71,82.43,70.58,64.42,70.89,70.95,71.3,67.57,74.31,74.05,65.94,null,80.06,72.5,70.43,71.17,74.16,64.74,72.29,70.03,78.94,70.82,78.15,67.03,73.75,72.64,67.85,72.0,76.1,69.91,64.4,71.06,67.48,69.68,70.69,64.15,64.47,72.82,68.76,60.55,73.91,71.82,67.83,65.38,73.95,71.96,80.05,72.16,71.99,69.72,73.62,72.81,75.27,68.14,68.44,68.22,73.25,76.04,68.17,68.26,71.17,68.89,73.63,60.77,66.43,66.56,60.36,null,65.89,68.7,73.91,68.44,65.25,69.1,73.47,65.33,65.54,null,68.2,71.63,68.94,71.75,64.76,68.8,67.96,63.89,62.45,71.4,67.2,64.47,68.12,72.97,59.29,62.37,64.62,74.11,69.34,71.23,null,63.58,69.8,68.19,70.1,67.11,68.92,68.39,70.81,70.88,61.12,58.56,71.5,72.2,63.31,59.9,67.68,70.96,74.37,69.19,65.59,63.45,67.02,65.72,62.8,75.0,73.9,71.24,62.96,70.01,69.1,68.25,71.43,68.92,69.28,68.81,67.57,59.02,66.43,63.82,60.87,72.66,72.79,71.26,66.78,71.11,65.7,66.41,61.16,67.07,65.67,60.16,65.11,64.93,72.39,68.71,65.13,66.02,65.14,64.1,60.52,64.19,61.75,59.67,66.66,66.12,57.35,63.95,68.36,68.56,68.37,64.36,60.77,59.75,65.41,65.48,69.06,68.25,63.26,58.75,62.39,64.48,62.74,61.18,64.44,61.35,60.79,64.49,61.58,64.1,64.16,58.44,61.02,68.63,58.17,54.29,55.25,62.75,62.7,62.04,67.3,51.69,63.91,68.51,57.69,60.62,59.06,58.44,60.65,67.6,69.17,60.42,69.32,61.78,68.59,61.14,61.97,62.85,74.04,64.66,58.37,65.01,59.62,59.05,64.58,61.0,61.93,60.81,62.03,62.32,52.81,63.16,56.5,54.6,60.07,60.57,57.4,63.43,54.67,58.35,57.57,59.66,60.9,55.69,62.55,59.84,51.96,null,59.35,58.45,58.85,59.09,60.04,62.86,54.56,54.25,54.5,59.96,63.72,56.95,null,51.73,55.15,56.18,56.72,58.44,56.97,62.35,55.38,54.57,59.87,51.75,59.38,58.17,57.1,63.98,55.07,65.73,56.52,52.25,57.57,52.92,54.15,58.68,59.25,54.47,60.85,61.46,62.51,58.81,62.08,49.04,55.23,52.96,56.84,54.01,55.57,63.69,55.42,57.69,55.04,56.2,55.86,57.56,60.36,62.22,56.8,57.86,50.83,55.01,59.06,58.7,56.01,58.64,56.99,59.77,56.06,53.41,56.11,null,56.16,39.97,47.6,56.24,56.28,49.65,51.38,59.65,52.16,63.0,53.96,55.53,60.3,54.29,49.69,53.19,53.42,48.04,52.41,50.4,57.0,53.37,52.04,52.68,53.93,55.44,48.9,48.67,57.19,51.05,46.97,54.35,54.36,46.32,53.29,55.25,53.74,54.7,46.49,53.37,50.77,49.98,55.33,57.7,58.89,56.91,51.14,52.93,54.52,51.87,51.84,54.55,50.95,48.21,49.4,53.53,50.94,52.22,53.48,49.23,53.69,52.12,45.6,56.24,48.4,43.72,46.1,46.13,50.36,48.99,48.67,52.43,51.25,51.09,51.4,52.16,41.2,48.11,40.78,49.58,49.36,53.49,54.0,49.99,47.12,51.0,46.88,48.92,52.81,46.57,51.96,51.39,44.79,52.44,51.28,null,45.31,44.86,46.08,50.34,44.29,49.8,43.02,47.11,48.3,57.58,42.23,53.56,48.21,49.19,47.96,49.2,46.75,53.12,45.42,51.71,44.54,46.82,42.71,48.75,52.65,46.5,45.96,42.23,45.71,40.2,42.86,47.36,51.67,57.57,43.92,51.95,47.12,45.48,47.76,46.22,46.35,44.22,40.2,39.56,48.29,44.51,43.17,45.53,48.62,46.1,42.7,50.17,51.52,47.13,48.98,50.0,49.49,47.37,47.25,46.88,null,47.49,39.21,41.4,49.73,47.82,50.35,43.26,39.68,43.27,44.59,44.44,48.6,42.57,45.36,39.94,45.65,43.8,40.73,42.74,42.89,42.49,50.6,43.07,42.43,34.96,39.72,42.19,null,48.66,42.42,48.18,43.22,43.07,42.51,42.83,49.64,33.43,34.65,40.43,null,45.26,44.34,40.86,46.42,46.41,null,46.04,43.23,39.84,44.83,42.43,41.94,47.78,32.03,36.12,36.99,40.23,40.62,35.56,37.6,38.05,51.27,48.6,39.69,39.84,36.65,33.56,40.68,37.11,40.71,34.6,37.91,41.5,42.33,42.49,35.49,44.14,37.47,43.16,40.54,35.03,39.23,41.91,42.85,39.79,46.44,44.29,39.19,43.17,47.86,47.93,35.13,36.29,45.89,35.67,-5.0,37.88,41.46,39.32,37.09,36.95,36.76,36.05,48.65,40.67,42.98,37.44,38.61,36.46,28.66,33.72,31.95,30.15,34.33,44.37,null,44.15,40.59,42.04,35.26,40.92,41.7,36.44,40.95,40.94,36.44,34.11,33.82,38.87,39.79,35.28,38.51,40.65,40.81,44.5,43.37,34.22,44.92,36.03,42.3,38.35,36.4,30.78,37.29,31.7,41.77,43.94,34.65,39.01,34.87,35.22,40.8,37.51,44.59,35.67,41.57,37.93,40.69,35.68,37.24,36.95,34.03,39.99,39.91,39.66,43.4,43.02,35.69,38.65,34.64,37.19,34.67,43.52,38.47,36.11,41.73,28.24,28.84,40.05,37.08,37.81,31.48,36.66,44.74,40.0,37.36,34.89,35.05,28.08,37.6,null,30.22,33.85,31.84,32.58,36.63,28.06,38.83,39.36,35.32,26.38,32.29,41.18,25.12,34.82,31.46,39.38,33.44,37.73,38.36,43.42,35.24,37.53,30.07,40.75,32.93,33.7,35.84,29.66,36.8,39.74,37.02,29.47,35.32,38.76,28.26,31.46,39.24,36.8,37.35,43.12,37.54,38.28,46.48,34.76,32.41,37.3,37.32,33.45,null,44.76,null,32.56,39.14,35.03,34.44,37.68,30.25,36.82,43.05,37.25,33.86,33.33,33.7,34.32,33.81,38.97,28.36,38.73,33.76,36.77,30.74,40.56,40.21,39.06,29.15,38.52,36.81,28.76,35.08,36.62,37.38,35.86,36.31,41.03,40.03,23.65,33.84,34.45,28.09,35.47,40.08,30.73,36.42,31.4,32.37,40.97,32.88,36.9,27.56,42.49,37.45,34.3,37.33,29.38,39.75,33.72,34.2,33.05,32.69,37.79,36.03,37.61,34.97,37.06,33.33,43.92,28.73,40.04,40.47,31.59,43.92,38.98,38.89,35.12,34.14,34.17,36.57,40.61,35.74,31.37,38.31,38.7,37.64,38.01,33.95,31.32,31.56,28.5,35.99,34.72,33.3,23.24,null,39.55,32.42,36.53,29.53,40.85,34.53,36.27,44.42,41.19,33.9,32.77,33.84,37.19,34.74,33.59,41.05,34.73,44.4,35.57,42.36,36.66,39.09,32.35,31.84,37.11,39.23,35.45,30.16,29.87,29.62,28.27,35.79,39.86,35.32,26.35,34.64,34.76,43.81,29.61,33.89,42.3,37.29,37.75,35.97,36.85,38.66,32.32,39.09,30.1,36.92,36.34,33.18,35.57,33.19,31.41,34.3,31.31,37.04,31.17,38.63,31.08,33.56,33.34,41.16,37.2,35.05,37.91,27.51,35.79,43.97,36.53,36.29,38.23,null,28.1,29.38,36.97,33.29,41.42,34.94,28.48,31.17,25.27,35.35,35.56,34.64,40.68,41.18,35.73,27.89,38.93,38.71,37.75,40.46,31.9,44.62,32.77,39.64,29.92,32.97,42.78,35.7,40.13,37.75,36.41,42.31,35.94,29.79,33.73,39.18,38.58,30.76,34.16,34.76,35.66,31.64,34.66,34.29,40.32,40.51,36.72,35.76,37.92,34.13,32.84,33.7,34.95,32.87,38.2,40.51,31.27,37.75,36.81,39.09,37.7,31.97,32.77,37.97,42.01,29.07,39.34,42.75,37.42,40.27,35.29,37.66,31.69,28.83,42.02,34.34,36.5,32.81,32.75,37.73,35.55,40.02,40.35,39.86,39.57,44.97,34.42,38.51,43.3,43.87,33.16,37.64,44.36,null,39.79,38.18,37.55,40.28,38.16,39.04,39.57,36.58,41.46,51.03,32.31,40.76,36.46,41.85,39.77,42.68,44.37,40.49,44.29,30.42,46.21,41.39,44.24,35.1,36.7,40.65,40.04,41.29,44.54,33.18,44.18,40.37,39.56,34.54,42.48,30.86,43.16,34.64,40.87,40.22,45.43,40.08,38.07,38.86,46.03,43.13,39.49,40.13,34.86,42.73,34.18,44.28,41.84,50.92,37.02,41.06,48.71,46.33,38.83,42.56,41.72,42.89,39.02,41.51,35.52,42.51,43.82,41.16,35.66,null,43.68,39.37,41.2,36.37,38.32,40.33,47.44,40.02,45.2,40.53,43.73,42.23,46.34,40.76,36.66,37.48,40.93,38.12,44.81,41.36,52.77,36.38,44.2,38.92,41.52,44.11,34.3,44.6,51.32,41.95,44.86,47.97,43.27,41.66,34.94,46.66,43.7,40.16,44.77,41.99,42.27,46.86,39.14,48.74,39.01,42.01,52.41,49.29,45.22,41.13,42.83,45.3,45.22,44.76,45.06,44.38,39.53,43.29,49.07,40.0,44.77,42.31,46.09,44.15,51.68,47.85,40.64,48.63,42.91,43.76,47.38,44.22,49.81,43.21,43.89,43.8,44.22,50.94,49.12,53.51,55.8,42.66,47.13,42.2,43.86,44.51,42.86,42.95,46.64,42.41,50.71,43.73,58.7,45.72,47.87,42.46,54.53,52.25,49.02,42.51,null,null,null,51.38,48.59,null,44.4,51.15,null,52.96,42.22,49.85,52.77,42.14,48.81,50.0,47.76,41.62,47.79,47.85,48.63,47.03,47.58],"temp":[61.71,62.07,62.57,61.45,61.61,61.32,62.42,61.91,62.34,62.93,62.35,62.85,62.65,63.21,63.18,62.66,62.99,63.66,63.4,62.58,63.67,62.87,64.18,64.05,63.75,63.75,63.64,64.15,63.69,64.06,64.45,63.8,63.84,63.62,63.75,63.43,64.78,65.38,65.26,63.8,65.04,65.46,64.59,64.93,63.95,65.15,64.55,65.25,64.44,65.56,65.86,65.03,64.92,64.48,65.49,65.4,64.98,66.05,65.66,65.42,65.75,66.63,66.46,66.16,66.6,65.78,66.44,66.57,66.32,66.84,66.3,67.01,67.1,65.44,67.56,65.5,66.79,67.67,67.07,66.56,66.82,67.94,66.54,68.13,67.6,67.1,67.47,67.32,68.33,68.33,67.17,67.9,67.74,68.88,67.63,69.17,68.42,67.92,68.23,68.24,68.07,68.82,68.22,67.81,68.78,68.14,68.73,68.72,68.8,70.31,69.4,69.56,68.62,69.25,69.75,69.2,70.23,69.24,69.77,69.68,70.13,69.79,70.04,70.13,69.95,70.62,70.57,70.47,70.37,71.05,70.6,70.63,70.9,71.76,70.31,71.44,70.17,71.29,72.04,71.56,71.47,71.17,71.54,71.46,71.26,71.58,71.89,71.47,71.52,71.31,72.25,72.4,72.31,72.74,72.37,72.59,72.61,72.48,72.33,73.77,72.5,72.46,73.08,73.05,72.29,73.62,73.08,72.64,73.86,73.64,72.76,74.35,73.86,73.59,74.46,73.81,73.78,73.54,74.22,74.24],"req":[6000,5943,6095,5949,5976,5954,5976,6041,6040,5967,6050,5969,6016,6117,5897,6058,6024,5964,6004,5919,5945,5888,5947,5949,5973,5964,5875,5927,6001,5958],"err":[38,27,35,33,32,21,29,29,28,37,38,27,29,30,27,29,36,30,36,22,434,432,420,426,438,27,34,23,37,40]};
+const $ = s => document.querySelector(s);
+const LIGHT = {'--muted':'#5b6876','--grid':'#e3e7ec','--open':'#c2621a','--closed':'#1f5fbf','--sla':'#b4322e','--bad':'#b4322e'};
+let EXPORTING = false;
+const css = v => EXPORTING ? LIGHT[v] : getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const store = { get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+const fmt = (v, d=0) => v == null || Number.isNaN(v) ? '—' : v.toLocaleString('ru-RU', {minimumFractionDigits:d, maximumFractionDigits:d});
+
+/* ---------- Tabs ---------- */
+const tabs = [...document.querySelectorAll('.tab')];
+function showTab(id){
+  tabs.forEach(t => { const on = t.getAttribute('aria-controls') === id; t.setAttribute('aria-selected', on); document.getElementById(t.getAttribute('aria-controls')).hidden = !on; });
+  store.set('isu-tab', id); drawAll(); if (id === 'rep' && typeof refreshAuto === 'function') refreshAuto();
+}
+tabs.forEach(t => t.addEventListener('click', () => { history.replaceState(null, '', '#' + t.getAttribute('aria-controls')); showTab(t.getAttribute('aria-controls')); }));
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (['pr1','pr2','pr3','rep'].includes(h)) showTab(h); });
+
+/* ---------- Canvas helper ---------- */
+function setupCanvas(cv){
+  const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute('height');
+  cv.width = w * r; cv.height = h * r; cv.style.height = h + 'px';
+  const g = cv.getContext('2d'); g.setTransform(r,0,0,r,0,0); return [g, w, h];
+}
+function chart(cv, {series, yMax, yMin=0, yTicks, xMax, xTicks, hline, y2}, size){
+  let g, w, h;
+  if (size){ w = size.w; h = size.h; cv.width = w * 2; cv.height = h * 2; g = cv.getContext('2d'); g.setTransform(2,0,0,2,0,0); g.fillStyle = '#ffffff'; g.fillRect(0,0,w,h); }
+  else { if (!cv.clientWidth) return; [g, w, h] = setupCanvas(cv); }
+  const L = 44, R = y2 ? 44 : 12, T = 10, B = 24, W = w - L - R, H = h - T - B;
+  const X = x => L + x / xMax * W, Y = (y, s) => { const mx = s ? s.max : yMax, mn = s ? s.min : yMin; return T + H - (Math.min(Math.max(y,mn),mx) - mn) / (mx - mn) * H; };
+  g.font = '11px "IBM Plex Mono", Consolas, monospace'; g.fillStyle = css('--muted'); g.strokeStyle = css('--grid'); g.lineWidth = 1;
+  yTicks.forEach(t => { const y = Y(t); g.beginPath(); g.moveTo(L, y); g.lineTo(L + W, y); g.stroke(); g.textAlign = 'right'; g.fillText(t.toLocaleString('ru-RU'), L - 6, y + 4); });
+  if (y2) y2.ticks.forEach(t => { g.textAlign = 'left'; g.fillText(t + y2.unit, L + W + 6, Y(t, y2) + 4); });
+  xTicks.forEach(t => { g.textAlign = 'center'; g.fillText(t, X(t), h - 6); });
+  if (hline){ g.strokeStyle = css('--sla'); g.setLineDash([5,4]); g.beginPath(); g.moveTo(L, Y(hline)); g.lineTo(L + W, Y(hline)); g.stroke(); g.setLineDash([]); }
+  series.forEach(s => {
+    g.strokeStyle = css(s.color); g.lineWidth = s.width || 1.8; g.beginPath(); let pen = false;
+    s.data.forEach((v, i) => { if (v == null || Number.isNaN(v)) { pen = false; return; } const x = X(i), y = Y(v, s.axis); if (!pen){ g.moveTo(x, y); pen = true; } else if (s.step){ g.lineTo(x, g._ly ?? y); g.lineTo(x, y); } else g.lineTo(x, y); g._ly = y; });
+    g._ly = undefined; g.stroke();
+  });
+}
+
+/* ============ ПР-1 ============ */
+const P1 = { up:250, down:120, cd:5, nmin:2, nmax:10 }, CAP = 100, SLA = 300, T = DATA.load.length;
+const lat = (load, n) => 60 / (1 - Math.min(load / (CAP * n), 0.98));
+function simOpen(){ const n = [], l = []; for (let k = 0; k < T; k++){ const nn = k < 120 ? 4 : 3; n.push(nn); l.push(lat(DATA.load[k], nn)); } return {n, l}; }
+function simClosed(p, fc){
+  let n = 3, last = -p.cd; const N = [], Lt = [];
+  for (let k = 0; k < T; k++){
+    const meas = lat(DATA.load[k], n);
+    const look = fc ? Math.max(meas, lat(DATA.load[Math.min(k + 10, T - 1)], n)) : meas;
+    if (k - last >= p.cd){
+      if (look > p.up && n < p.nmax){ n++; last = k; }
+      else if (look < p.down && meas < p.down && n > p.nmin){ n--; last = k; }
+    }
+    N.push(n); Lt.push(meas);
+  }
+  return {n: N, l: Lt};
+}
+const metrics = s => ({ viol: s.l.filter(v => v > SLA).length, cost: s.n.reduce((a,b) => a+b, 0), sw: s.n.slice(1).filter((v,i) => v !== s.n[i]).length, max: Math.max(...s.l) });
+let sim1 = null;
+function run1(){
+  ['up','down','cd','nmin','nmax'].forEach(k => P1[k] = +$('#' + k).value);
+  $('#o-up').textContent = P1.up + ' мс'; $('#o-down').textContent = P1.down + ' мс'; $('#o-cd').textContent = P1.cd + ' мин';
+  $('#o-nmin').textContent = P1.nmin; $('#o-nmax').textContent = P1.nmax;
+  const o = simOpen(), c = simClosed(P1, $('#fc').checked), mo = metrics(o), mc = metrics(c);
+  sim1 = {o, c, mo, mc};
+  const k = (lbl, a, b, d=0) => `<div class="kpi"><div class="lbl">${lbl}</div><div class="row"><span>${fmt(a,d)}</span><span>${fmt(b,d)}</span></div></div>`;
+  $('#kpis').innerHTML = k('Нарушения SLA, мин', mo.viol, mc.viol) + k('Стоимость, экз.-мин', mo.cost, mc.cost) + k('Переключения', mo.sw, mc.sw) + k('Макс. задержка, мс', mo.max, mc.max)
+    + `<div class="kpi" style="grid-column:1/-1;padding:8px 12px"><span class="small">В каждой карточке: <b style="color:var(--open)">разомкнутый</b> слева, <b style="color:var(--closed)">замкнутый</b> справа. ${mc.viol <= 10 ? '<span class="pill ok">SLA ≤ 10 мин</span>' : '<span class="pill bad">SLA > 10 мин</span>'}</span></div>`;
+  draw1();
+}
+function draw1(){
+  if (!sim1 || $('#pr1').hidden) return;
+  chart($('#c-lat'), { series:[{data:sim1.o.l, color:'--open'},{data:sim1.c.l, color:'--closed'}], yMax:3000, yTicks:[0,500,1000,1500,2000,2500,3000], xMax:T-1, xTicks:[0,30,60,90,120,150,179], hline:SLA });
+  chart($('#c-n'), { series:[{data:sim1.o.n, color:'--open', step:true},{data:sim1.c.n, color:'--closed', step:true}], yMax:12, yTicks:[0,4,8,12], xMax:T-1, xTicks:[0,30,60,90,120,150,179] });
+}
+let log = store.get('isu-log', []);
+function renderLog(){
+  $('#log tbody').innerHTML = log.map((r,i) => `<tr><td class="num">${i+1}</td><td class="num">${r.up}</td><td class="num">${r.down}</td><td class="num">${r.cd}</td><td class="num">${r.nmax}</td><td>${r.fc ? 'да' : 'нет'}</td><td class="num">${r.viol}</td><td class="num">${r.cost}</td><td class="num">${r.sw}</td></tr>`).join('');
+  $('#log-empty').hidden = log.length > 0;
+}
+$('#log-add').addEventListener('click', () => { log.push({...P1, fc:$('#fc').checked, viol:sim1.mc.viol, cost:sim1.mc.cost, sw:sim1.mc.sw}); store.set('isu-log', log); renderLog(); });
+$('#reset1').addEventListener('click', () => { Object.entries({up:250,down:120,cd:5,nmin:2,nmax:10}).forEach(([k,v]) => $('#'+k).value = v); $('#fc').checked = false; run1(); });
+['up','down','cd','nmin','nmax','fc'].forEach(id => $('#' + id).addEventListener('input', run1));
+
+/* ============ ПР-2 ============ */
+const P2 = { join:'time', agg:'mean', out:'nan', win:5, esMax:1 };
+const pad = n => String(n).padStart(2,'0');
+const tlabel = s => `10:${pad(Math.floor(s/60))}:${pad(s%60)}`;
+function clean(v, lo, hi){ if (v == null) return null; if (v >= lo && v <= hi) return v; return P2.out === 'nan' ? null : P2.out === 'clip' ? Math.min(Math.max(v,lo),hi) : v; }
+function run2(){
+  P2.esMax = +$('#es-max').value; $('#o-es').textContent = fmt(P2.esMax, 2);
+  const cpu = DATA.cpu.map(v => clean(v, 0, 100));
+  const rows = [];
+  for (let m = 0; m < 30; m++){
+    const seg = cpu.slice(m*60, m*60+60).filter(v => v != null);
+    const c = seg.length ? (P2.agg === 'mean' ? seg.reduce((a,b)=>a+b,0)/seg.length : seg.reduce((a,b)=>a+b,0)) : null;
+    const ts = DATA.temp.slice(m*6, m*6+6); const t = ts.reduce((a,b)=>a+b,0)/ts.length;
+    rows.push({m, cpu:c, t, req:DATA.req[m], err:DATA.err[m]});
+  }
+  rows.forEach((r,i) => {
+    const w = rows.slice(Math.max(0, i - P2.win + 1), i + 1).map(x => x.cpu).filter(v => v != null);
+    r.avg = w.length >= 3 ? w.reduce((a,b)=>a+b,0)/w.length : null;
+    r.rate = i ? r.t - rows[i-1].t : null;
+    r.es = r.err / r.req;
+    const prob = [];
+    if (r.avg == null) prob.push('нет cpu_avg'); else if (r.avg > 100) prob.push('cpu_avg > 100');
+    if (r.rate == null) prob.push('нет temp_rate');
+    if (r.es > P2.esMax) prob.push('error_share > ' + fmt(P2.esMax,2));
+    r.prob = prob;
+  });
+  const bad = DATA.cpu.filter(v => v != null && (v < 0 || v > 100)).length, miss = DATA.cpu.filter(v => v == null).length;
+  const okN = rows.filter(r => !r.prob.length).length;
+  const k = (lbl, v, cls='') => `<div class="kpi"><div class="lbl">${lbl}</div><div class="row"><span style="color:var(--ink)" class="${cls}">${v}</span></div></div>`;
+  $('#kpis2').innerHTML = k('Записей CPU (1 с)', '1 800') + k('Пропусков CPU', miss) + k('Вне диапазона 0–100', bad) + k('Минут прошли контракт', `${okN} из 30`);
+  $('#rowpanel').hidden = P2.join !== 'row';
+  if (P2.join === 'row'){
+    const idx = [0,1,2,3,4,5,178,179,180,181];
+    $('#rowtbl').innerHTML = idx.map(i => `<tr><td class="num">${i}</td><td class="mono">${tlabel(i)}</td><td class="num">${fmt(DATA.cpu[i],1)}</td><td class="mono">${i < 180 ? tlabel(i*10) : '—'}</td><td class="num">${i < 180 ? fmt(DATA.temp[i],1) : '<span class="pill bad">нет</span>'}</td></tr>`).join('');
+  }
+  $('#p2tbl').innerHTML = rows.map(r => `<tr><td class="mono">10:${pad(r.m)}</td><td class="num">${fmt(r.cpu, r.cpu > 1000 ? 0 : 2)}</td><td class="num">${fmt(r.avg, r.avg > 1000 ? 0 : 2)}</td><td class="num">${fmt(r.t,2)}</td><td class="num">${fmt(r.rate,2)}</td><td class="num">${fmt(r.req)}</td><td class="num">${fmt(r.err)}</td><td class="num"${r.es > .05 ? ' style="color:var(--bad);font-weight:600"' : ''}>${fmt(r.es*100,1)}%</td><td>${r.prob.length ? `<span class="pill bad" title="${r.prob.join('; ')}">${r.prob.join('; ')}</span>` : '<span class="pill ok">OK</span>'}</td></tr>`).join('');
+  P2.rows = rows; draw2();
+}
+function draw2(){
+  if (!P2.rows || $('#pr2').hidden) return;
+  const avg = P2.rows.map(r => r.avg), mx = Math.max(100, ...avg.filter(v => v != null));
+  const top = mx > 100 ? Math.ceil(mx / 1000) * 1000 : 100;
+  const ticks = top === 100 ? [0,25,50,75,100] : [0, top/4, top/2, 3*top/4, top];
+  chart($('#c-p2'), { series:[{data:avg, color:'--closed'},{data:P2.rows.map(r => r.es*100), color:'--bad', axis:{min:0,max:10}}], yMax:top, yTicks:ticks, xMax:29, xTicks:[0,5,10,15,20,25,29], y2:{min:0,max:10,ticks:[0,5,10],unit:'%'} });
+}
+function seg(id, key, num){
+  const el = $(id);
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); P2[key] = num ? +b.dataset.v : b.dataset.v; run2(); });
+}
+seg('#seg-join','join'); seg('#seg-agg','agg'); seg('#seg-out','out'); seg('#seg-win','win', true);
+$('#es-max').addEventListener('input', run2);
+
+/* ============ ПР-3 ============ */
+const PARAMS = ['cpu','ram','temperature','p95_latency'];
+const TERMS = [
+  {t:'cpu_high', p:'cpu', op:'≥', v:80}, {t:'cpu_normal', p:'cpu', op:'<', v:60},
+  {t:'ram_high', p:'ram', op:'≥', v:85}, {t:'temperature_high', p:'temperature', op:'≥', v:75},
+  {t:'temperature_crit', p:'temperature', op:'≥', v:90}, {t:'latency_high', p:'p95_latency', op:'≥', v:500}];
+const BASE_RULES = [
+  ['R1',['cpu_high','ram_high'],'resource_pressure',10], ['R2',['resource_pressure','latency_high'],'performance_incident',20],
+  ['R3',['performance_incident'],'ACTION:scale_out',30], ['R4',['temperature_high','resource_pressure'],'overheat_risk',40],
+  ['R5',['overheat_risk'],'ACTION:max_cooling',50], ['R6',['temperature_crit'],'ACTION:safe_mode',100],
+  ['R7',['cpu_normal'],'STATE:normal',5]];
+const fixGap = () => $('#fix-gap').checked, fixMeta = () => $('#fix-meta').checked;
+const test = (term, v) => term.op === '≥' ? v >= term.v : v < term.v;
+function terms(){ const t = TERMS.map(x => ({...x})); if (fixGap()) t.push({t:'cpu_medium', p:'cpu', op:'60–80', v:null, fn: v => v >= 60 && v < t[0].v}); return t; }
+function rules(){ let r = BASE_RULES.slice(); if (fixGap()) r.push(['R8',['cpu_medium','latency_high'],'STATE:watch',15]); if (fixMeta()) r = r.filter(x => x[0] !== 'R7'); return r; }
+function discretize(m){
+  const facts = [], prov = {};
+  terms().forEach(x => { const v = m[x.p]; if (v == null) return; if (x.fn ? x.fn(v) : test(x, v)){ facts.push(x.t); prov[x.t] = `${x.p}=${v}`; } });
+  return {facts, prov};
+}
+function infer(m){
+  const {facts, prov} = discretize(m), F = new Set(facts), steps = [], R = rules();
+  for (;;){
+    const agenda = R.filter(r => r[1].every(c => F.has(c)) && !F.has(r[2]));
+    if (!agenda.length) break;
+    const r = agenda.reduce((a,b) => b[3] > a[3] ? b : a);
+    F.add(r[2]); steps.push({r, agenda: agenda.map(a => a[0])});
+  }
+  if (fixMeta() && F.has('cpu_normal') && ![...F].some(f => f.startsWith('ACTION') || f.startsWith('STATE'))){ F.add('STATE:normal'); steps.push({meta:true}); }
+  return {facts, prov, F, steps};
+}
+const CASES = [
+  {n:'штатный', m:{cpu:40,ram:50,temperature:60,p95_latency:120}, a:[], orig:true},
+  {n:'перегрузка', m:{cpu:92,ram:88,temperature:70,p95_latency:640}, a:['ACTION:scale_out'], orig:true},
+  {n:'перегрев', m:{cpu:92,ram:88,temperature:79,p95_latency:200}, a:['ACTION:max_cooling'], orig:true},
+  {n:'авария', m:{cpu:30,ram:40,temperature:95,p95_latency:100}, a:['ACTION:safe_mode'], orig:true},
+  {n:'штатный + состояние', m:{cpu:40,ram:50,temperature:60,p95_latency:120}, a:[], s:['STATE:normal']},
+  {n:'авария, CPU низкий', m:{cpu:50,ram:90,temperature:95,p95_latency:700}, a:['ACTION:safe_mode'], s:[]},
+  {n:'пограничный 70 %', m:{cpu:70,ram:50,temperature:60,p95_latency:600}, a:[], s:['STATE:watch']}];
+const PRESETS = [['Пример лекции',{cpu:92,ram:88,temperature:79,p95_latency:640}],['Авария',{cpu:50,ram:90,temperature:95,p95_latency:700}],['Пограничный',{cpu:70,ram:50,temperature:60,p95_latency:600}],['Нет RAM',{cpu:92,ram:null,temperature:60,p95_latency:640}]];
+let shown = 0, cur = null;
+function readM(){ const m = {}; PARAMS.forEach(p => m[p] = $('#na-' + p).checked || $('#m-' + p).value === '' ? null : +$('#m-' + p).value); return m; }
+function chip(t, cls='', title=''){ return `<span class="chip ${cls}"${title ? ` title="${title}"` : ''}>${t}</span>`; }
+function render3(){
+  const s = cur;
+  $('#facts').innerHTML = s.facts.length ? s.facts.map(f => chip(`${f} ← ${s.prov[f]}`, 'on')).join('') : '<span class="small">Ни один терм не сработал.</span>';
+  $('#trace').innerHTML = s.steps.slice(0, shown).map(st => st.meta
+    ? `<li><span><span class="r">META</span> вывод завершён, действий нет → <b>STATE:normal</b></span></li>`
+    : `<li><span><span class="r">${st.r[0]}</span> (приоритет ${st.r[3]}): ${st.r[1].join(' И ')} → <b>${st.r[2]}</b><br><span class="small">агенда: ${st.agenda.join(', ')}${st.agenda.length > 1 ? ' — выбрано правило с наибольшим приоритетом' : ''}</span></span></li>`).join('')
+    + (shown < s.steps.length ? `<li class="pending"><span>… ещё ${s.steps.length - shown} шаг(а)</span></li>` : (s.steps.length ? '' : '<li class="pending"><span>Применимых правил нет.</span></li>'));
+  $('#step').disabled = shown >= s.steps.length; $('#runall').disabled = shown >= s.steps.length;
+  const done = shown >= s.steps.length;
+  const F = new Set([...s.facts, ...s.steps.slice(0, shown).map(st => st.meta ? 'STATE:normal' : st.r[2])]);
+  const acts = [...F].filter(f => f.startsWith('ACTION')), states = [...F].filter(f => f.startsWith('STATE'));
+  $('#result').innerHTML = (acts.map(a => chip(a, 'act')).join('') + states.map(a => chip(a, 'state')).join('')) || `<span class="small">${done ? 'Ни действий, ни состояния.' : 'Вывод не завершён.'}</span>`;
+  const m = readM(), missing = PARAMS.filter(p => m[p] == null);
+  let note = '';
+  if (done && F.has('STATE:normal') && (F.has('ACTION:safe_mode') || F.has('performance_incident'))) note = '<div class="note bad"><b>Противоречие.</b> Система одновременно считает состояние нормальным и требует аварийного действия или фиксирует инцидент.</div>';
+  else if (done && missing.length && !acts.length && !states.length) note = `<div class="note bad"><b>Нет данных: ${missing.join(', ')}.</b> База молча не дала ни действия, ни состояния. Какое правило здесь нужно?</div>`;
+  $('#conflict').innerHTML = note;
+}
+function run3(){ cur = infer(readM()); shown = cur.steps.length; render3(); renderTables3(); }
+function renderTables3(){
+  const T = terms();
+  $('#strip').innerHTML = Array.from({length:21}, (_,i) => i*5).map(v => {
+    const hit = T.filter(x => x.p === 'cpu' && (x.fn ? x.fn(v) : test(x, v))).map(x => x.t);
+    const bg = hit.length ? (hit.includes('cpu_high') ? 'var(--bad-soft)' : hit.includes('cpu_medium') ? 'var(--accent-soft)' : 'var(--good-soft)') : 'repeating-linear-gradient(45deg,var(--bad) 0 3px,transparent 3px 7px)';
+    return `<div style="background:${bg}" title="cpu=${v}%: ${hit.join(', ') || 'ПРОБЕЛ'}">${v % 20 === 0 ? v : ''}</div>`;
+  }).join('');
+  const gaps = Array.from({length:21}, (_,i) => i*5).filter(v => !T.some(x => x.p === 'cpu' && (x.fn ? x.fn(v) : test(x, v))));
+  $('#strip-note').innerHTML = gaps.length ? `<span class="pill bad">Пробел</span> CPU ${gaps.join(', ')} % не попадает ни в один терм.` : '<span class="pill ok">Покрыто</span> Каждому значению CPU соответствует терм.';
+  $('#rules').innerHTML = rules().map(r => `<tr><td class="mono">${r[0]}</td><td>${r[1].join(' И ')} → <b>${r[2]}</b></td><td class="num">${r[3]}</td></tr>`).join('') + (fixMeta() ? '<tr><td class="mono">META</td><td>нет ACTION и STATE, cpu_normal → <b>STATE:normal</b></td><td class="num">—</td></tr>' : '');
+  $('#tests').innerHTML = CASES.map(c => {
+    const F = infer(c.m).F, acts = [...F].filter(f => f.startsWith('ACTION')).sort(), st = [...F].filter(f => f.startsWith('STATE')).sort();
+    const ok = acts.join() === c.a.slice().sort().join() && (c.s === undefined || st.join() === c.s.join());
+    const exp = [...c.a, ...(c.s || [])].join(', ') || (c.s ? 'ничего' : 'нет действий');
+    const got = (c.s === undefined ? acts : [...acts, ...st]).join(', ') || '—';
+    return `<tr><td>${c.n}</td><td class="num">${c.m.cpu}</td><td class="num">${c.m.ram}</td><td class="num">${c.m.temperature}</td><td class="num">${c.m.p95_latency}</td><td class="mono">${exp}</td><td class="mono">${got}</td><td>${ok ? '<span class="pill ok">ПРОЙДЕН</span>' : '<span class="pill bad">ОШИБКА</span>'}</td></tr>`;
+  }).join('');
+}
+$('#thr').innerHTML = TERMS.map((x,i) => `<label for="thr${i}" class="mono">${x.t}</label><span class="small">${x.op}</span><input type="number" id="thr${i}" value="${x.v}">`).join('');
+TERMS.forEach((x,i) => $('#thr' + i).addEventListener('input', e => { x.v = +e.target.value; run3(); }));
+$('#presets').innerHTML = PRESETS.map((p,i) => `<button class="btn ghost" data-i="${i}" style="padding:5px 9px;font-size:12.5px">${p[0]}</button>`).join('');
+$('#presets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = PRESETS[+b.dataset.i][1]; PARAMS.forEach(p => { $('#na-' + p).checked = m[p] == null; if (m[p] != null) $('#m-' + p).value = m[p]; }); run3(); });
+PARAMS.forEach(p => { $('#m-' + p).addEventListener('input', run3); $('#na-' + p).addEventListener('change', run3); });
+['#fix-gap','#fix-meta'].forEach(id => $(id).addEventListener('change', run3));
+$('#step').addEventListener('click', () => { shown++; render3(); });
+$('#runall').addEventListener('click', () => { shown = cur.steps.length; render3(); });
+$('#restart').addEventListener('click', () => { shown = 0; render3(); });
+
+
+/* ============ ОТЧЁТ ============ */
+const VARIANTS = [
+  ['Веб-сервис интернет-магазина','число экземпляров приложения','запросы/с, P95-задержка, доля 5xx, CPU'],
+  ['Серверная комната','мощность кондиционеров','температура на входе/выходе стоек, влажность, энергопотребление'],
+  ['Компьютерная аудитория университета','включение/отключение ПК, вентиляция','температура, число пользователей, энергопотребление, расписание'],
+  ['Умное освещение учебного корпуса','яркость светильников','освещённость, присутствие людей, время суток, тариф'],
+  ['Система отопления здания','температура теплоносителя','температура в помещениях, наружная температура, расписание занятий'],
+  ['Корпоративная сеть (маршрутизатор)','приоритеты QoS, выбор канала','загрузка канала, потери пакетов, задержка, джиттер'],
+  ['Умная теплица','полив, форточки, досветка','влажность почвы и воздуха, температура, освещённость'],
+  ['Солнечная электростанция с аккумулятором','заряд/разряд, переключение на сеть','генерация, уровень заряда, потребление, облачность'],
+  ['Малая ГЭС','расход воды через турбину','уровень воды, приток, выработка, вибрация агрегата'],
+  ['Мониторинг оползнеопасного склона','уровень оповещения, частота опроса датчиков','влажность грунта, смещение, осадки, температура'],
+  ['База данных LMS университета','размер пула соединений, кэширование','число соединений, время запроса, блокировки, диск'],
+  ['Служба технической поддержки (Service Desk)','назначение заявок, эскалация','число заявок, время реакции, приоритет, загрузка инженеров'],
+  ['Защита веб-приложения от перебора паролей','блокировка IP, CAPTCHA','неуспешные входы, число IP, география, время'],
+  ['Складская логистика интернет-магазина','объём закупки, перераспределение','остатки, спрос, срок поставки, стоимость хранения'],
+  ['Мониторинг учебного процесса (академический риск)','консультация, уведомление куратора','посещаемость, сданные задания, баллы тестов, динамика рейтинга']];
+
+const WORKS = {
+ 1: { title:'Анализ объекта управления и проектирование архитектуры ИСУ',
+  goal:'Научиться описывать объект как замкнутый контур «объект → данные → модель → решение → действие → обратная связь» и на модели выяснить, что даёт обратная связь и чего она стоит.',
+  items:[
+   {type:'h', text:'Задание 1. Паспорт объекта'},
+   {type:'grid', id:'passport', label:'Паспорт объекта управления', req:true, cols:['Элемент','Описание для вашего объекта'],
+    fixed:['Объект и границы','Цель','Состояние S(t)','Управление U(t)','Возмущения W(t)','Метрики модели','Метрики управления','Защитные ограничения','Режим участия человека','Режим деградации']},
+   {type:'h', text:'Задание 2. Схема архитектуры'},
+   {type:'image', id:'scheme', label:'Схема замкнутого контура (рисунок из draw.io или фото с бумаги)'},
+   {type:'text', id:'placement', label:'Размещение блоков (edge / gateway / cloud) и обоснование', req:true, help:'Для каждого из шести уровней: где он работает и почему (одно предложение).'},
+   {type:'h', text:'Задание 3. Моделирование контуров'},
+   {type:'auto', id:'res1', label:'Результаты моделирования (с вкладки ПР-1)'},
+   {type:'text', id:'which', label:'Какой контур лучше и почему однозначно ответить нельзя', req:true},
+   {type:'h', text:'Задание 4. Исследование политики'},
+   {type:'auto', id:'log1', label:'Журнал экспериментов (с вкладки ПР-1, не менее 4 строк)'},
+   {type:'text', id:'best', label:'Лучшая комбинация, причина пика 3000 мс, роль прогноза', req:true},
+   {type:'h', text:'Задание 5. Сценарии проверки'},
+   {type:'grid', id:'scen', label:'Сценарии и ожидаемый безопасный результат', req:true, cols:['Сценарий','Ожидаемый безопасный результат'], fixed:['Штатный режим','Резкий скачок','Отказ интеллектуального модуля']}],
+  questions:['Чем разомкнутый контур отличается от замкнутого? Когда разомкнутый допустим?','Почему выход модели и политику действий разносят по разным уровням архитектуры?','Для чего нужен cooldown и к какому уровню архитектуры он относится?','Приведите пример защитного ограничения для своего объекта.','Какие функции нельзя делать зависимыми только от cloud-сервиса и почему?','Какой режим участия человека подходит вашему объекту и почему?']},
+ 2: { title:'Формализация объекта: каталог параметров и контракт данных',
+  goal:'Превратить описание объекта из работы №1 в проверяемую спецификацию данных и научиться готовить сырую телеметрию для интеллектуального модуля.',
+  items:[
+   {type:'h', text:'Задание 1. Каталог параметров'},
+   {type:'grid', id:'catalog', label:'Каталог параметров (не менее 6 строк, хотя бы 2 частоты)', req:true, min:6, rows:8, cols:['Параметр','Единицы','Источник','Частота','Диапазон','Агрегация до 1 мин','Пропуски']},
+   {type:'h', text:'Задание 2. Предобработка телеметрии'},
+   {type:'auto', id:'res2', label:'Результаты предобработки (с вкладки ПР-2)'},
+   {type:'h', text:'Задание 3. Анализ результата'},
+   {type:'text', id:'a1', q:'1. Почему для requests и errors_5xx используется сумма, а для cpu — среднее? Что получится, если перепутать?', req:true},
+   {type:'text', id:'a2', q:'2. Что произойдёт, если объединить ряды по номеру строки?', req:true},
+   {type:'text', id:'a3', q:'3. Почему значения 180 и −5 заменяются на пустые, а не на 100 и 0?', req:true},
+   {type:'text', id:'a4', q:'4. Где виден инцидент? По какому признаку он виден, а по какому нет?', req:true},
+   {type:'h', text:'Задание 4. Адаптация под свой объект'},
+   {type:'text', id:'feat', label:'Собственные производные признаки (не менее двух) и зачем они нужны', req:true},
+   {type:'text', id:'json', label:'Контракт модели в формате JSON', req:true, mono:true, help:'Образец — в методических указаниях. Имена входов, типы, диапазоны, единицы, версия, выход, поведение при нарушении.'},
+   {type:'h', text:'Задание 5 (дополнительное). Training-serving skew'},
+   {type:'text', id:'skew', label:'Максимальное расхождение окон 5 и 3 минуты, где и почему это опасно'}],
+  questions:['Что такое каталог параметров и почему его составляют до выбора алгоритма?','Какие проблемы возникают при объединении данных с разной частотой?','Чем различаются event time и processing time?','Что такое training-serving skew и как его предотвратить?','Зачем контракту модели номер версии?','Приведите пример производного признака, который выявляет проблему, невидимую в сырых данных.']},
+ 3: { title:'Продукционные правила и база знаний',
+  goal:'Создать для своего объекта продукционную базу знаний, найти в ней пробелы и противоречия и проверить её набором тестов.',
+  items:[
+   {type:'h', text:'Задание 1. Словарь терминов'},
+   {type:'grid', id:'terms', label:'Термы (6–8)', req:true, min:6, rows:8, cols:['Терм','Параметр','Условие','Основание']},
+   {type:'h', text:'Задание 2. Механизм вывода'},
+   {type:'auto', id:'trace3', label:'Цепочка вывода для текущих измерений (с вкладки ПР-3)'},
+   {type:'text', id:'order', label:'Почему правила сработали именно в таком порядке', req:true},
+   {type:'h', text:'Задание 3. Поиск и исправление дефектов'},
+   {type:'text', id:'defects', label:'Найденные дефекты: в чём каждый и к какому типу относится (таблица 3.2 конспекта)', req:true},
+   {type:'text', id:'fix', label:'Как вы их исправили; почему исправление противоречия — метазнание', req:true},
+   {type:'auto', id:'tests3', label:'Покрытие и тесты после исправления (с вкладки ПР-3)'},
+   {type:'h', text:'Задание 4. База знаний своего объекта'},
+   {type:'grid', id:'rules', label:'Правила (не менее 10, цепочка длиной не менее 3, хотя бы одно защитное)', req:true, min:10, rows:12, cols:['Правило','ЕСЛИ','ТО','Приоритет','Источник']},
+   {type:'grid', id:'mytests', label:'Тесты (не менее 6: штатный, пограничный, аварийный, конфликтный, неполные данные, свой)', req:true, min:6, rows:6, cols:['Сценарий','Измерения','Ожидаемый результат']},
+   {type:'h', text:'Задание 5 (дополнительное). Проверка циклов'},
+   {type:'text', id:'cycle', label:'Функция поиска циклов и результат проверки', mono:true}],
+  questions:['Чем данные, информация, знания и метазнания отличаются на примере вашей базы?','Зачем хранить provenance символического факта?','Как приоритет правила влияет на порядок действий и почему это важно?','Почему все тесты исходной базы проходят, хотя база содержит дефекты?','Чем прямой вывод отличается от обратного? Когда удобнее обратный?','Какую проблему чётких порогов (79,9% и 80,0%) решит нечёткая логика в работе №5?']}
+};
+
+let REP = store.get('isu-rep', {common:{teacher:'Канетова Д.Э., к.ф.-м.н., доцент', method:'Тренажёр', variant:'1'}, w1:{}, w2:{}, w3:{}});
+let WORK = String(store.get('isu-rep-work', '1'));
+const saveRep = () => store.set('isu-rep', REP);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const para = s => esc(s).split(/\n{2,}/).map(p => p.replace(/\n/g,'<br>')).join('</p><p>');
+const W = () => REP['w' + WORK];
+
+$('#r-variant').innerHTML = VARIANTS.map((v,i) => `<option value="${i+1}">${i+1}. ${v[0]}</option>`).join('');
+document.querySelectorAll('[data-common]').forEach(el => {
+  const k = el.dataset.common; if (REP.common[k] != null) el.value = REP.common[k];
+  el.addEventListener('input', () => { REP.common[k] = el.value; saveRep(); if (k === 'variant') renderForm(); else updateProgress(); });
+});
+
+function renderForm(){
+  const w = WORKS[WORK], d = W(), v = VARIANTS[(+REP.common.variant || 1) - 1];
+  let h = `<h2>Работа №${WORK}. ${w.title}</h2><p class="small">Ваш объект (вариант ${REP.common.variant || 1}): <b>${esc(v[0])}</b>. Управление: ${esc(v[1])}. Параметры: ${esc(v[2])}. Поля со звёздочкой обязательны.</p>`;
+  h += '<div class="rsec">';
+  w.items.forEach(it => {
+    if (it.type === 'h'){ h += `</div><div class="rsec"><h3>${it.text}</h3>`; return; }
+    if (it.type === 'text') h += `<div class="rf">${it.q ? `<span class="q ${it.req?'req':''}">${it.q}</span>` : `<label for="f-${it.id}" class="${it.req?'req':''}">${it.label}</label>`}${it.help ? `<p class="help">${it.help}</p>` : ''}<textarea id="f-${it.id}" data-f="${it.id}" class="${it.mono?'mono':''}">${esc(d[it.id])}</textarea></div>`;
+    if (it.type === 'grid'){
+      const rows = it.fixed ? it.fixed.length : it.rows, val = d[it.id] || [];
+      h += `<div class="rf"><label class="${it.req?'req':''}">${it.label}</label><div class="rtab"><table><thead><tr>${it.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+      for (let r = 0; r < rows; r++){
+        h += '<tr>' + it.cols.map((c, ci) => it.fixed && ci === 0 ? `<td class="fixed">${it.fixed[r]}</td>` : `<td><input aria-label="${c}, строка ${r+1}" data-g="${it.id}" data-r="${r}" data-c="${ci}" value="${esc((val[r]||[])[ci])}"></td>`).join('') + '</tr>';
+      }
+      h += `</tbody></table></div>${it.fixed ? '' : `<button class="linkbtn" data-addrow="${it.id}">+ добавить строку</button>`}</div>`;
+    }
+    if (it.type === 'image') h += `<div class="rf"><label>${it.label}</label><div class="imgdrop">${d[it.id] ? `<img src="${d[it.id]}" alt="Схема">` : '<span class="small">Рисунок не загружен</span>'}<input type="file" id="f-${it.id}" accept="image/*" data-img="${it.id}">${d[it.id] ? `<button class="linkbtn" data-delimg="${it.id}">удалить</button>` : ''}</div></div>`;
+    if (it.type === 'auto') h += `<div class="rf"><label>${it.label}</label><div class="auto" id="auto-${it.id}"></div></div>`;
+  });
+  h += '</div>';
+  h += `<div class="rsec"><h3>Выводы</h3><div class="rf"><label for="f-concl" class="req">Выводы (5–7 предложений с числами из эксперимента)</label><textarea id="f-concl" data-f="concl" style="min-height:120px">${esc(d.concl)}</textarea></div></div>`;
+  h += `<div class="rsec"><h3>Ответы на контрольные вопросы</h3>` + w.questions.map((q,i) => `<div class="rf"><span class="q req">${i+1}. ${q}</span><textarea data-f="q${i}">${esc(d['q'+i])}</textarea></div>`).join('') + '</div>';
+  $('#r-form').innerHTML = h;
+  // extra grid rows saved
+  w.items.filter(it => it.type === 'grid' && !it.fixed).forEach(it => { const n = (d[it.id] || []).length; for (let r = it.rows; r < n; r++) addRow(it, false); });
+  refreshAuto(); updateProgress();
+}
+function addRow(it, focus){
+  const tb = $(`#r-form input[data-g="${it.id}"]`).closest('tbody'), r = tb.rows.length;
+  const tr = document.createElement('tr'); const d = W()[it.id] || [];
+  tr.innerHTML = it.cols.map((c, ci) => `<td><input aria-label="${c}, строка ${r+1}" data-g="${it.id}" data-r="${r}" data-c="${ci}" value="${esc((d[r]||[])[ci])}"></td>`).join('');
+  tb.appendChild(tr); if (focus) tr.querySelector('input').focus();
+}
+$('#r-form').addEventListener('input', e => {
+  const t = e.target, d = W();
+  if (t.dataset.f){ d[t.dataset.f] = t.value; }
+  else if (t.dataset.g){ const g = d[t.dataset.g] = d[t.dataset.g] || []; const r = +t.dataset.r; g[r] = g[r] || []; g[r][+t.dataset.c] = t.value; }
+  saveRep(); updateProgress();
+});
+$('#r-form').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.addrow){ addRow(WORKS[WORK].items.find(i => i.id === b.dataset.addrow), true); }
+  if (b.dataset.delimg){ delete W()[b.dataset.delimg]; delete W()[b.dataset.delimg + '_wh']; saveRep(); renderForm(); }
+});
+$('#r-form').addEventListener('change', e => {
+  const t = e.target; if (!t.dataset.img || !t.files[0]) return;
+  const fr = new FileReader();
+  fr.onload = () => { const im = new Image(); im.onload = () => {
+    const k = Math.min(1, 1400 / im.width), cv = document.createElement('canvas'); cv.width = Math.round(im.width*k); cv.height = Math.round(im.height*k);
+    const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,cv.width,cv.height); g.drawImage(im, 0, 0, cv.width, cv.height);
+    W()[t.dataset.img] = cv.toDataURL('image/jpeg', 0.85); W()[t.dataset.img + '_wh'] = [cv.width, cv.height]; saveRep(); renderForm(); };
+    im.src = fr.result; };
+  fr.readAsDataURL(t.files[0]);
+});
+document.querySelector('#seg-work').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#seg-work button').forEach(x => x.setAttribute('aria-pressed', x === b)); WORK = b.dataset.v; store.set('isu-rep-work', WORK); renderForm(); });
+document.querySelectorAll('#seg-work button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === WORK));
+$('#r-clear').addEventListener('click', () => { $('#r-clear-confirm').hidden = false; });
+$('#r-clear-no').addEventListener('click', () => { $('#r-clear-confirm').hidden = true; });
+$('#r-clear-yes').addEventListener('click', () => { REP['w' + WORK] = {}; saveRep(); $('#r-clear-confirm').hidden = true; renderForm(); });
+
+/* --- проверка полноты --- */
+function checks(){
+  const w = WORKS[WORK], d = W(), miss = []; let total = 0, ok = 0;
+  const need = (cond, msg) => { total++; if (cond) ok++; else miss.push(msg); };
+  need((REP.common.fio||'').trim().length > 3, 'ФИО'); need((REP.common.group||'').trim(), 'Группа');
+  const filled = s => (s||'').trim().length >= 10;
+  w.items.forEach(it => {
+    if (it.type === 'text' && it.req) need(filled(d[it.id]), it.q ? 'Задание 3, вопрос ' + it.q.slice(0,2) : it.label);
+    if (it.type === 'grid' && it.req){
+      const rows = (d[it.id] || []).filter(r => r && r.some(c => (c||'').trim()));
+      if (it.fixed) need((d[it.id]||[]).filter(r => r && (r[1]||'').trim()).length >= it.fixed.length, it.label + ': заполните все строки');
+      else need(rows.length >= it.min, `${it.label}: заполнено ${rows.length} из ${it.min}`);
+    }
+    if (it.type === 'image') need(d[it.id] || filled(d.placement), 'Схема: загрузите рисунок');
+    if (it.id === 'log1') need(log.length >= 4, `Журнал экспериментов: ${log.length} из 4 строк (вкладка ПР-1)`);
+  });
+  need(filled(d.concl), 'Выводы');
+  w.questions.forEach((q,i) => need(filled(d['q'+i]), 'Контрольный вопрос ' + (i+1)));
+  return {total, ok, miss};
+}
+function updateProgress(){
+  const c = checks(); $('#r-bar').style.width = (100 * c.ok / c.total) + '%';
+  $('#r-progress').textContent = c.miss.length ? `Готово ${c.ok} из ${c.total}. Не хватает:` : 'Все обязательные части заполнены.';
+  $('#r-missing').innerHTML = c.miss.map(m => `<li>${esc(m)}</li>`).join('');
+}
+
+/* --- автоматические блоки (в виде абстрактных блоков документа) --- */
+const p2top = rows => { const mx = Math.max(100, ...rows.map(r => r.avg || 0)); return mx > 100 ? Math.ceil(mx/1000)*1000 : 100; };
+const p2ticks = top => top === 100 ? [0,25,50,75,100] : [0, top/4, top/2, 3*top/4, top];
+function chartImg(opts, w=640, h=240){ const cv = document.createElement('canvas'); EXPORTING = true; try { chart(cv, opts, {w, h}); } finally { EXPORTING = false; } return {src: cv.toDataURL('image/png'), w, h}; }
+// блоки: {t:'p', runs:[{text,b,i}], align, size, before, after} · {t:'table', head, rows, plain} · {t:'img', src, w, h, cap} · {t:'pre', text} · {t:'break'}
+const Pp = (text, o={}) => ({t:'p', runs:[{text:String(text ?? ''), b:o.b, i:o.i}], align:o.align, size:o.size, before:o.before, after:o.after});
+const Tb = (head, rows) => ({t:'table', head, rows: rows.map(r => r.map(x => String(x ?? '')))});
+function auto(id){
+  const out = [];
+  if (id === 'res1'){
+    const p = P1, fc = $('#fc').checked;
+    out.push(Pp(`Параметры замкнутого контура: up = ${p.up} мс, down = ${p.down} мс, cooldown = ${p.cd} мин, N_MIN = ${p.nmin}, N_MAX = ${p.nmax}, прогноз на 10 мин — ${fc ? 'включён' : 'выключен'}.`));
+    out.push(Tb(['Контур','Нарушения SLA, мин','Стоимость, экз.-мин','Переключения','Макс. задержка, мс'],
+      [['Разомкнутый (расписание)', sim1.mo.viol, sim1.mo.cost, sim1.mo.sw, fmt(sim1.mo.max)], ['Замкнутый', sim1.mc.viol, sim1.mc.cost, sim1.mc.sw, fmt(sim1.mc.max)]]));
+    out.push({t:'img', ...chartImg({ series:[{data:sim1.o.l, color:'--open'},{data:sim1.c.l, color:'--closed'}], yMax:3000, yTicks:[0,500,1000,1500,2000,2500,3000], xMax:T-1, xTicks:[0,30,60,90,120,150,179], hline:SLA }), cap:'Рисунок. Задержка P95, мс, по минутам (оранжевый — разомкнутый контур, синий — замкнутый, пунктир — SLA 300 мс)'});
+    out.push({t:'img', ...chartImg({ series:[{data:sim1.o.n, color:'--open', step:true},{data:sim1.c.n, color:'--closed', step:true}], yMax:12, yTicks:[0,4,8,12], xMax:T-1, xTicks:[0,30,60,90,120,150,179] }, 640, 170), cap:'Рисунок. Число экземпляров U(t) по минутам'});
+  }
+  if (id === 'log1'){
+    if (!log.length) out.push(Pp('Журнал пуст: опыты не записаны.', {i:true}));
+    else out.push(Tb(['№','up, мс','down, мс','cooldown, мин','N_MAX','Прогноз','SLA, мин','Стоимость','Переключения'], log.map((r,i) => [i+1, r.up, r.down, r.cd, r.nmax, r.fc ? 'да' : 'нет', r.viol, r.cost, r.sw])));
+  }
+  if (id === 'res2'){
+    const names = {time:'по времени (ресемплирование)', row:'по номеру строки', mean:'среднее', sum:'сумма', nan:'пусто (NaN)', clip:'обрезать', keep:'оставить'};
+    const rows = P2.rows, okN = rows.filter(r => !r.prob.length).length, top = p2top(rows);
+    out.push(Pp(`Настройки: объединение — ${names[P2.join]}; агрегация CPU — ${names[P2.agg]}; невозможные значения — ${names[P2.out]}; окно cpu_avg — ${P2.win} мин; максимум error_share в контракте — ${fmt(P2.esMax,2)}.`));
+    out.push(Pp(`CPU: 1800 записей, ${DATA.cpu.filter(v => v == null).length} пропусков, ${DATA.cpu.filter(v => v != null && (v < 0 || v > 100)).length} значения вне диапазона 0–100. Контракт прошли ${okN} минут из 30.`));
+    out.push(Tb(['Время','cpu','cpu_avg','t, °C','temp_rate','requests','5xx','error_share','Контракт'], rows.map(r => [`10:${pad(r.m)}`, fmt(r.cpu,2), fmt(r.avg,2), fmt(r.t,2), fmt(r.rate,2), r.req, r.err, fmt(r.es*100,1) + '%', r.prob.length ? r.prob.join('; ') : 'OK'])));
+    out.push({t:'img', ...chartImg({ series:[{data:rows.map(r => r.avg), color:'--closed'},{data:rows.map(r => r.es*100), color:'--bad', axis:{min:0,max:10}}], yMax:top, yTicks:p2ticks(top), xMax:29, xTicks:[0,5,10,15,20,25,29], y2:{min:0,max:10,ticks:[0,5,10],unit:'%'} }), cap:'Рисунок. cpu_avg, % (синий, левая шкала) и доля ошибок 5xx, % (красный, правая шкала) по минутам'});
+  }
+  if (id === 'trace3'){
+    const m = readM(), s = infer(m);
+    out.push(Pp('Измерения: ' + PARAMS.map(p => `${p} = ${m[p] == null ? 'нет данных' : m[p]}`).join('; ') + '.'));
+    out.push(Pp('Исходные факты (provenance): ' + (s.facts.map(f => `${f} ← ${s.prov[f]}`).join('; ') || 'нет') + '.'));
+    if (s.steps.length) out.push(Tb(['Шаг','Правило','Условие','Заключение','Приоритет'], s.steps.map((st,i) => st.meta ? [i+1, 'META', 'нет действий, cpu_normal', 'STATE:normal', '—'] : [i+1, st.r[0], st.r[1].join(' И '), st.r[2], st.r[3]])));
+    else out.push(Pp('Применимых правил нет.'));
+    out.push(Pp('Итог: ' + ([...s.F].filter(f => f.startsWith('ACTION') || f.startsWith('STATE')).join(', ') || 'ни действий, ни состояния') + '.'));
+  }
+  if (id === 'tests3'){
+    const Tm = terms(), gaps = Array.from({length:21}, (_,i) => i*5).filter(v => !Tm.some(x => x.p === 'cpu' && (x.fn ? x.fn(v) : test(x, v))));
+    out.push(Pp(`Исправления: терм cpu_medium и правило R8 — ${fixGap() ? 'добавлены' : 'нет'}; метаправило для STATE:normal — ${fixMeta() ? 'добавлено' : 'нет'}. Покрытие CPU: ${gaps.length ? 'пробел при ' + gaps.join(', ') + ' %' : 'пробелов нет'}.`));
+    out.push(Tb(['Сценарий','Измерения','Ожидается','Получено','Тест'], CASES.map(c => { const F = infer(c.m).F, a = [...F].filter(f => f.startsWith('ACTION')).sort(), st = [...F].filter(f => f.startsWith('STATE')).sort();
+      const ok = a.join() === c.a.slice().sort().join() && (c.s === undefined || st.join() === c.s.join());
+      return [c.n, `cpu ${c.m.cpu}, ram ${c.m.ram}, t ${c.m.temperature}, p95 ${c.m.p95_latency}`, [...c.a, ...(c.s||[])].join(', ') || 'нет действий', (c.s === undefined ? a : [...a, ...st]).join(', ') || '—', ok ? 'ПРОЙДЕН' : 'ОШИБКА']; })));
+  }
+  return out;
+}
+function refreshAuto(){
+  if ($('#rep').hidden) return;
+  WORKS[WORK].items.filter(it => it.type === 'auto').forEach(it => {
+    const el = $('#auto-' + it.id); if (!el) return;
+    const bl = auto(it.id);
+    const parts = bl.map(x => x.t === 'p' ? x.runs.map(r => r.text).join('') : x.t === 'table' ? `[таблица: ${x.rows.length} строк]` : x.t === 'img' ? '[график]' : '').join(' ');
+    el.innerHTML = `<b>Будет вставлено автоматически.</b> ${esc(parts.slice(0, 460))}${parts.length > 460 ? '…' : ''}`;
+  });
+  updateProgress();
+}
+
+/* --- сборка отчёта в блоки --- */
+function buildReport(){
+  const w = WORKS[WORK], d = W(), c = REP.common, v = VARIANTS[(+c.variant || 1) - 1], B = [];
+  const text = (s, o) => { const t = (s||'').trim(); if (!t) { B.push(Pp('не заполнено', {i:true})); return; } t.split(/\n{2,}/).forEach(par => B.push({t:'p', runs:[{text:par}], ...o})); };
+  const H = s => B.push({t:'p', runs:[{text:s, b:true}], before:12, after:6, keep:true});
+  const L = s => B.push({t:'p', runs:[{text:s, b:true}], before:6, after:3, keep:true});
+  // титульный лист
+  B.push(Pp('МИНИСТЕРСТВО ОБРАЗОВАНИЯ И НАУКИ КЫРГЫЗСКОЙ РЕСПУБЛИКИ', {align:'center', after:0}));
+  B.push(Pp('МЕЖДУНАРОДНЫЙ УНИВЕРСИТЕТ ИМЕНИ К.Ш. ТОКТОМАМАТОВА', {align:'center', b:true, after:0}));
+  if ((c.dept||'').trim()) B.push(Pp('Кафедра ' + c.dept.trim(), {align:'center', after:0}));
+  B.push(Pp('ОТЧЁТ', {align:'center', b:true, size:16, before:100, after:0}));
+  B.push(Pp(`по практической работе №${WORK}`, {align:'center', b:true, size:16, after:6}));
+  B.push(Pp(`«${w.title}»`, {align:'center', after:6}));
+  B.push(Pp('по дисциплине «Интеллектуальные системы управления»', {align:'center', after:0}));
+  B.push(Pp('направление 710500 «Интернет-технологии и управление»', {align:'center', after:6}));
+  B.push(Pp(`Вариант ${c.variant || 1}: ${v[0]}`, {align:'center', after:0}));
+  B.push({t:'table', plain:true, before:70, rows:[['Выполнил(а):', c.fio||''], ['Группа:', c.group||''], ['Способ выполнения:', c.method||''], ['Проверил(а):', c.teacher||''], ['Оценка:', '______ / 10']]});
+  B.push(Pp(`Жалал-Абад — ${new Date().getFullYear()}`, {align:'center', before:50}));
+  B.push({t:'break'});
+  H('Цель работы'); B.push(Pp(w.goal));
+  H('Объект варианта'); B.push(Pp(`${v[0]}. Управляющее воздействие: ${v[1]}. Ключевые параметры состояния: ${v[2]}.`));
+  w.items.forEach(it => {
+    if (it.type === 'h'){ H(it.text); return; }
+    if (it.type === 'text'){ L(it.q || it.label); if (it.mono && (d[it.id]||'').trim()) B.push({t:'pre', text:d[it.id]}); else text(d[it.id]); }
+    if (it.type === 'grid'){
+      const val = d[it.id] || [];
+      const rows = it.fixed ? it.fixed.map((f,r) => [f, (val[r]||[])[1] || '']) : val.filter(r => r && r.some(x => (x||'').trim())).map(r => it.cols.map((_,ci) => r[ci] || ''));
+      L(it.label); if (rows.length) B.push(Tb(it.cols, rows)); else B.push(Pp('не заполнено', {i:true}));
+    }
+    if (it.type === 'image'){ L(it.label); if (d[it.id]) { const wh = d[it.id + '_wh'] || [1200, 800]; B.push({t:'img', src:d[it.id], w:wh[0], h:wh[1], cap:'Рисунок. Схема замкнутого контура интеллектуальной системы управления'}); } else B.push(Pp('рисунок не приложен', {i:true})); }
+    if (it.type === 'auto'){ L(it.label.replace(/\s*\(с вкладки.*$/,'')); B.push(...auto(it.id)); }
+  });
+  H('Выводы'); text(d.concl);
+  H('Ответы на контрольные вопросы'); w.questions.forEach((q,i) => { L(`${i+1}. ${q}`); text(d['q'+i]); });
+  B.push(Pp(`Отчёт сформирован в тренажёре «Интеллектуальные системы управления» ${new Date().toLocaleString('ru-RU')}.`, {i:true, size:11, before:18}));
+  return B;
+}
+
+/* --- блоки → HTML (предпросмотр и печать) --- */
+function blocksHTML(B){
+  return B.map(x => {
+    if (x.t === 'p'){ const st = [x.align ? `text-align:${x.align}` : '', x.size ? `font-size:${x.size}pt` : '', `margin:${x.before||0}pt 0 ${x.after ?? 6}pt`].filter(Boolean).join(';');
+      return `<p style="${st}">${x.runs.map(r => { let t = esc(r.text).replace(/\n/g,'<br>'); if (r.b) t = `<b>${t}</b>`; if (r.i) t = `<i>${t}</i>`; return t; }).join('')}</p>`; }
+    if (x.t === 'table'){
+      if (x.plain) return `<table style="width:62%;margin:${x.before||0}pt 0 0 auto;border:0">${x.rows.map(r => `<tr>${r.map(c => `<td style="border:0;padding:2pt 4pt">${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`;
+      return `<table><tr>${x.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr>${x.rows.map(r => `<tr>${r.map(c => `<td>${esc(c).replace(/\n/g,'<br>')}</td>`).join('')}</tr>`).join('')}</table>`; }
+    if (x.t === 'img') return `<p style="text-align:center;margin:6pt 0 0"><img src="${x.src}" style="max-width:100%;width:${Math.min(600, x.w)}px" alt=""></p><p style="text-align:center;font-size:12pt;margin:2pt 0 10pt">${esc(x.cap||'')}</p>`;
+    if (x.t === 'pre') return `<pre style="font-family:'Courier New',monospace;font-size:10pt;white-space:pre-wrap;margin:0 0 8pt">${esc(x.text)}</pre>`;
+    if (x.t === 'break') return '<div class="pb"></div><hr class="pb-screen">';
+    return '';
+  }).join('');
+}
+
+/* --- блоки → DOCX (Office Open XML, без внешних библиотек) --- */
+const xe = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+function runXML(r, size){
+  const pr = (r.b ? '<w:b/>' : '') + (r.i ? '<w:i/>' : '') + (size ? `<w:sz w:val="${size*2}"/><w:szCs w:val="${size*2}"/>` : '');
+  return String(r.text).split('\n').map((ln, i) => (i ? `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}<w:br/></w:r>` : '') + `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}<w:t xml:space="preserve">${xe(ln)}</w:t></w:r>`).join('');
+}
+function pXML(x){
+  const jc = x.align === 'center' ? '<w:jc w:val="center"/>' : x.align ? '' : '<w:jc w:val="both"/>';
+  return `<w:p><w:pPr>${x.keep ? '<w:keepNext/>' : ''}<w:spacing w:before="${(x.before||0)*20}" w:after="${(x.after ?? 6)*20}" w:line="360" w:lineRule="auto"/>${jc}</w:pPr>${x.runs.map(r => runXML(r, x.size)).join('')}</w:p>`;
+}
+const TEXT_W = 9355; // ширина текста A4 при полях 3 и 1,5 см, в twips
+function cellP(t, opt={}){ return `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>${runXML({text:t, b:opt.b}, opt.size || 11)}</w:p>`; }
+function tableXML(x){
+  if (x.plain){
+    const cw = [2700, 4300];
+    return `<w:p><w:pPr><w:spacing w:before="${(x.before||0)*20}" w:after="0"/></w:pPr></w:p><w:tbl><w:tblPr><w:tblW w:w="${cw[0]+cw[1]}" w:type="dxa"/><w:jc w:val="right"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid>${cw.map(c => `<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>`
+      + x.rows.map(r => `<w:tr>${r.map((c,i) => `<w:tc><w:tcPr><w:tcW w:w="${cw[i]}" w:type="dxa"/></w:tcPr>${cellP(c, {size:14})}</w:tc>`).join('')}</w:tr>`).join('') + '</w:tbl>';
+  }
+  const n = x.head.length, cw = Math.floor(TEXT_W / n), b = 'w:val="single" w:sz="4" w:space="0" w:color="000000"';
+  return `<w:tbl><w:tblPr><w:tblW w:w="${cw*n}" w:type="dxa"/><w:tblBorders><w:top ${b}/><w:left ${b}/><w:bottom ${b}/><w:right ${b}/><w:insideH ${b}/><w:insideV ${b}/></w:tblBorders><w:tblCellMar><w:left w:w="70" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${x.head.map(() => `<w:gridCol w:w="${cw}"/>`).join('')}</w:tblGrid>`
+    + `<w:tr><w:trPr><w:tblHeader/></w:trPr>${x.head.map(h => `<w:tc><w:tcPr><w:tcW w:w="${cw}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EDEDED"/></w:tcPr>${cellP(h, {b:true})}</w:tc>`).join('')}</w:tr>`
+    + x.rows.map(r => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${r.map(c => `<w:tc><w:tcPr><w:tcW w:w="${cw}" w:type="dxa"/></w:tcPr>${cellP(c)}</w:tc>`).join('')}</w:tr>`).join('')
+    + '</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="120"/></w:pPr></w:p>';
+}
+function imgXML(x, rid, n){
+  const maxW = 16 * 360000, maxH = 20 * 360000; let wE = Math.min(maxW, Math.round(x.w / 640 * maxW)), hE = Math.round(wE * x.h / x.w); if (hE > maxH){ wE = Math.round(wE * maxH / hE); hE = maxH; }
+  return `<w:p><w:pPr><w:keepNext/><w:spacing w:before="120" w:after="0"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${wE}" cy="${hE}"/><wp:docPr id="${n}" name="Рисунок ${n}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${n}" name="image${n}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${wE}" cy="${hE}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`
+    + pXML({runs:[{text:x.cap || ''}], align:'center', size:12, before:2, after:10});
+}
+function preXML(x){ return x.text.split('\n').map(ln => `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New" w:cs="Courier New"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${xe(ln)}</w:t></w:r></w:p>`).join('') + '<w:p/>'; }
+function docxFiles(B){
+  const media = []; let body = '';
+  B.forEach(x => {
+    if (x.t === 'p') body += pXML(x);
+    if (x.t === 'table') body += tableXML(x);
+    if (x.t === 'pre') body += preXML(x);
+    if (x.t === 'break') body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+    if (x.t === 'img'){ const n = media.length + 1, png = x.src.startsWith('data:image/png'); media.push({name:`image${n}.${png ? 'png' : 'jpeg'}`, data:x.src.split(',')[1], rid:`rIdImg${n}`}); body += imgXML(x, `rIdImg${n}`, n); }
+  });
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+  const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="851" w:bottom="1134" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="ru-RU"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="360" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${media.map(m => `<Relationship Id="${m.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`).join('')}</Relationships>`;
+  const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
+  const root = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
+  const now = new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  const core = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xe('Отчёт по практической работе №' + WORK)}</dc:title><dc:creator>${xe(REP.common.fio || '')}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created></cp:coreProperties>`;
+  const enc = new TextEncoder(), b64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+  return [['[Content_Types].xml', enc.encode(ct)], ['_rels/.rels', enc.encode(root)], ['docProps/core.xml', enc.encode(core)], ['word/document.xml', enc.encode(doc)], ['word/styles.xml', enc.encode(styles)], ['word/_rels/document.xml.rels', enc.encode(rels)], ...media.map(m => ['word/media/' + m.name, b64(m.data)])];
+}
+/* минимальный ZIP (метод store) */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zip(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  files.forEach(([name, data]) => {
+    const nm = enc.encode(name), crc = crc32(data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint16(10, 0, true); h.setUint16(12, 0x21, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), nm, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, 0, true); c.setUint16(14, 0x21, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + data.length;
+  });
+  const csize = central.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+
+const TR = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',ө:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ү:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',ң:'ng'};
+const translit = s => [...String(s)].map(ch => { const l = ch.toLowerCase(), t = TR[l]; return t === undefined ? ch : (ch !== l ? t.charAt(0).toUpperCase() + t.slice(1) : t); }).join('');
+const fileBase = () => translit(`PR${WORK}_${(REP.common.fio || 'student').trim().split(/\s+/)[0]}_${(REP.common.group || '').trim()}`).replace(/[^A-Za-z0-9_.-]+/g,'').replace(/_+$/,'');
+function download(){
+  const blob = zip(docxFiles(buildReport()));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileBase() + '.docx';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+$('#r-word').addEventListener('click', download);
+$('#r-print').addEventListener('click', () => { $('#print-area').innerHTML = blocksHTML(buildReport()); setTimeout(() => window.print(), 50); });
+$('#r-preview').addEventListener('click', () => { $('#r-sheet').innerHTML = blocksHTML(buildReport()); $('#r-preview-wrap').hidden = false; });
+$('#r-preview-close').addEventListener('click', () => { $('#r-preview-wrap').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#r-preview-wrap').hidden = true; });
+
+/* ---------- Start ---------- */
+function drawAll(){ draw1(); draw2(); }
+window.addEventListener('resize', drawAll);
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawAll);
+new MutationObserver(drawAll).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+run1(); run2(); run3(); renderLog(); renderForm();
+const start = ['pr1','pr2','pr3','rep'].includes(location.hash.slice(1)) ? location.hash.slice(1) : store.get('isu-tab', 'pr1');
+showTab(['pr1','pr2','pr3','rep'].includes(start) ? start : 'pr1');
+document.fonts?.ready.then(drawAll);
+</script>
+
+</body>
+</html>
