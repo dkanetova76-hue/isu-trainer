@@ -106,6 +106,23 @@ code,.mono{font-family:var(--f-mono);font-size:.92em}
 @media (max-width:700px){.two{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
+/* ---- Как выполнять ---- */
+.guide{display:flex;flex-direction:column;gap:18px}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:900px){.cols3{grid-template-columns:minmax(0,1fr)}}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;max-width:78ch}
+.steps li::marker{font:600 13px var(--f-mono);color:var(--accent)}
+.small-steps{font-size:13.5px;gap:6px}
+.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+/* ---- подсказки ---- */
+details.tip{margin:0 0 6px;font-size:13px}
+details.tip summary{cursor:pointer;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;gap:6px;align-items:center}
+details.tip summary::-webkit-details-marker{display:none}
+details.tip summary::before{content:"?";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--accent);font:600 11px var(--f-mono)}
+details.tip[open] summary{margin-bottom:4px}
+details.tip p{margin:0 0 4px;padding:8px 10px;background:var(--accent-soft);border-radius:4px;max-width:90ch}
+details.tip p.ex{background:transparent;border:1px dashed var(--line);color:var(--muted);font-style:italic}
+.rtab input::placeholder,.rf textarea::placeholder{color:var(--muted);opacity:.7;font-style:italic}
 /* ---- Отчёт ---- */
 @media (min-width:861px){.rep-side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
 .fld{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
@@ -170,11 +187,102 @@ code,.mono{font-family:var(--f-mono);font-size:.92em}
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" id="t-pr1" aria-controls="pr1" aria-selected="true"><small>ПР-1</small>Контур управления</button>
+    <button class="tab" role="tab" id="t-start" aria-controls="start" aria-selected="true"><small>НАЧАЛО</small>Как выполнять</button>
+    <button class="tab" role="tab" id="t-pr1" aria-controls="pr1" aria-selected="false"><small>ПР-1</small>Контур управления</button>
     <button class="tab" role="tab" id="t-pr2" aria-controls="pr2" aria-selected="false"><small>ПР-2</small>Данные и контракт</button>
     <button class="tab" role="tab" id="t-pr3" aria-controls="pr3" aria-selected="false"><small>ПР-3</small>База знаний</button>
     <button class="tab" role="tab" id="t-rep" aria-controls="rep" aria-selected="false"><small>СДАЧА</small>Отчёт</button>
   </nav>
+
+
+  <!-- ============ КАК ВЫПОЛНЯТЬ ============ -->
+  <section id="start" role="tabpanel" aria-labelledby="t-start" hidden>
+    <div class="guide">
+      <div class="panel">
+        <h2>Порядок выполнения каждой работы</h2>
+        <ol class="steps">
+          <li><b>Узнайте свой вариант.</b> Номер варианта — ваш номер в списке группы; при группе больше 15 человек счёт начинается заново. Объект один на все три работы.</li>
+          <li><b>Прочитайте лекцию.</b> ПР-1 и ПР-2 опираются на лекции №1–2, ПР-3 — на лекцию №3 конспекта.</li>
+          <li><b>Выполните эксперимент</b> на вкладке ПР-1, ПР-2 или ПР-3 (что именно делать — ниже). Можно работать и в Python или Excel по методическим указаниям — отчёт всё равно оформляется здесь.</li>
+          <li><b>Заполните отчёт</b> на вкладке «Отчёт». У каждого поля есть подсказка «Что писать». Результаты моделирования вставятся сами.</li>
+          <li><b>Проверьте готовность.</b> Индикатор слева покажет, какие поля пустые.</li>
+          <li><b>Нажмите «Предпросмотр»</b>, прочитайте отчёт целиком, затем «Скачать отчёт (.docx)».</li>
+          <li><b>Откройте файл в Word</b> (или LibreOffice, Google Docs), проверьте и сдайте преподавателю тем способом, который он укажет.</li>
+          <li><b>Защитите работу:</b> покажите эксперимент в тренажёре и ответьте на 2–3 вопроса.</li>
+        </ol>
+      </div>
+
+      <div class="cols3">
+        <div class="panel">
+          <h2>ПР-1. Контур управления</h2>
+          <ol class="steps small-steps">
+            <li>Заполните паспорт объекта (задание 1) прямо в отчёте.</li>
+            <li>Нарисуйте схему в draw.io или на бумаге, сохраните картинку или фото.</li>
+            <li>На вкладке ПР-1 посмотрите итоги при параметрах по умолчанию.</li>
+            <li>Меняйте up, cooldown, N_MAX и после каждого изменения нажимайте «Записать опыт» — нужно не меньше 4 строк.</li>
+            <li>Включите прогноз и запишите ещё один опыт.</li>
+            <li>Перед скачиванием верните на вкладке ПР-1 ту комбинацию, которую считаете лучшей: её итоги и графики попадут в отчёт.</li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h2>ПР-2. Данные и контракт</h2>
+          <ol class="steps small-steps">
+            <li>Составьте каталог параметров своего объекта (не меньше 6 строк).</li>
+            <li>На вкладке ПР-2 переключайте способы обработки и отвечайте на 4 вопроса задания 3.</li>
+            <li>Найдите инцидент на графике и в столбце error_share.</li>
+            <li>Придумайте 2 производных признака и запишите контракт в JSON.</li>
+            <li>Перед скачиванием верните правильные настройки: «По времени», «Среднее», «Пусто», окно 5 мин — в отчёт попадут текущие.</li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h2>ПР-3. База знаний</h2>
+          <ol class="steps small-steps">
+            <li>Пройдите вывод по шагам: «Сначала» → «Следующий шаг».</li>
+            <li>Найдите два дефекта базы: посмотрите полосу покрытия, столбец «Противоречие» и тесты.</li>
+            <li>Включите исправления и убедитесь, что все тесты пройдены.</li>
+            <li>Составьте термы, 10+ правил и 6 тестов для своего объекта.</li>
+            <li>Перед скачиванием выставьте измерения, цепочку которых хотите показать в задании 2.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="panel">
+          <h2>Требования к оформлению</h2>
+          <ul class="plain">
+            <li>Титульный лист, шрифт Times New Roman 14 пт, интервал 1,5, поля 3 / 1,5 / 2 / 2 см — тренажёр делает это сам. Не меняйте оформление вручную.</li>
+            <li>Пишите полными предложениями от первого лица множественного числа или безлично: «мы получили», «получено».</li>
+            <li>Каждый вывод подкрепляйте числом из своего эксперимента.</li>
+            <li>Все примеры — про ваш объект, а не про веб-сервис из лекции.</li>
+            <li>Ответ на контрольный вопрос — 3–6 предложений и один пример.</li>
+            <li>Рисунок схемы — читаемый: подписи блоков видны, стрелки подписаны.</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h2>Частые ошибки</h2>
+          <ul class="plain">
+            <li>Скачали отчёт до эксперимента — в нём пустой журнал или результаты по умолчанию.</li>
+            <li>Скопировали пример из подсказки. Примеры даны для вентиляции спортзала; такого варианта нет.</li>
+            <li>Выводы без чисел: «замкнутый контур лучше». Нужно: «нарушения SLA сократились с 58 до 13 минут».</li>
+            <li>Работа выполнена на другом компьютере. Поля сохраняются только в этом браузере, поэтому заканчивайте отчёт там же, где начали.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Оценивание каждой работы</h2>
+        <div class="tbl"><table><thead><tr><th>Критерий</th><th class="num">Баллы</th></tr></thead><tbody>
+          <tr><td>Полнота и корректность описания объекта</td><td class="num">2</td></tr>
+          <tr><td>Схема, контракт или база правил</td><td class="num">2</td></tr>
+          <tr><td>Эксперимент выполнен, результаты объяснены</td><td class="num">3</td></tr>
+          <tr><td>Выводы с конкретными числами</td><td class="num">1</td></tr>
+          <tr><td>Защита: ответы на вопросы</td><td class="num">2</td></tr>
+        </tbody></table></div>
+        <p class="small" style="margin-top:8px">Работа зачтена при 6 баллах и более.</p>
+        <div class="btns" style="margin-top:12px"><button class="btn" data-go="pr1">Начать с ПР-1</button><button class="btn ghost" data-go="rep">Открыть отчёт</button></div>
+      </div>
+    </div>
+  </section>
 
   <!-- ============ ПР-1 ============ -->
   <section id="pr1" role="tabpanel" aria-labelledby="t-pr1">
@@ -359,7 +467,7 @@ function showTab(id){
   store.set('isu-tab', id); drawAll(); if (id === 'rep' && typeof refreshAuto === 'function') refreshAuto();
 }
 tabs.forEach(t => t.addEventListener('click', () => { history.replaceState(null, '', '#' + t.getAttribute('aria-controls')); showTab(t.getAttribute('aria-controls')); }));
-window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (['pr1','pr2','pr3','rep'].includes(h)) showTab(h); });
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (['start','pr1','pr2','pr3','rep'].includes(h)) showTab(h); });
 
 /* ---------- Canvas helper ---------- */
 function setupCanvas(cv){
@@ -666,21 +774,21 @@ function renderForm(){
   h += '<div class="rsec">';
   w.items.forEach(it => {
     if (it.type === 'h'){ h += `</div><div class="rsec"><h3>${it.text}</h3>`; return; }
-    if (it.type === 'text') h += `<div class="rf">${it.q ? `<span class="q ${it.req?'req':''}">${it.q}</span>` : `<label for="f-${it.id}" class="${it.req?'req':''}">${it.label}</label>`}${it.help ? `<p class="help">${it.help}</p>` : ''}<textarea id="f-${it.id}" data-f="${it.id}" class="${it.mono?'mono':''}">${esc(d[it.id])}</textarea></div>`;
+    if (it.type === 'text') h += `<div class="rf">${it.q ? `<span class="q ${it.req?'req':''}">${it.q}</span>` : `<label for="f-${it.id}" class="${it.req?'req':''}">${it.label}</label>`}${it.help ? `<p class="help">${it.help}</p>` : ''}${tipHTML(hintFor(it.id))}<textarea id="f-${it.id}" data-f="${it.id}" class="${it.mono?'mono':''}">${esc(d[it.id])}</textarea></div>`;
     if (it.type === 'grid'){
       const rows = it.fixed ? it.fixed.length : it.rows, val = d[it.id] || [];
-      h += `<div class="rf"><label class="${it.req?'req':''}">${it.label}</label><div class="rtab"><table><thead><tr>${it.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+      h += `<div class="rf"><label class="${it.req?'req':''}">${it.label}</label>${tipHTML(hintFor(it.id))}<div class="rtab"><table><thead><tr>${it.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
       for (let r = 0; r < rows; r++){
-        h += '<tr>' + it.cols.map((c, ci) => it.fixed && ci === 0 ? `<td class="fixed">${it.fixed[r]}</td>` : `<td><input aria-label="${c}, строка ${r+1}" data-g="${it.id}" data-r="${r}" data-c="${ci}" value="${esc((val[r]||[])[ci])}"></td>`).join('') + '</tr>';
+        h += '<tr>' + it.cols.map((c, ci) => it.fixed && ci === 0 ? `<td class="fixed">${it.fixed[r]}</td>` : `<td><input aria-label="${c}, строка ${r+1}" data-g="${it.id}" data-r="${r}" data-c="${ci}" placeholder="${esc(placeholderFor(it.id, r, ci))}" value="${esc((val[r]||[])[ci])}"></td>`).join('') + '</tr>';
       }
       h += `</tbody></table></div>${it.fixed ? '' : `<button class="linkbtn" data-addrow="${it.id}">+ добавить строку</button>`}</div>`;
     }
-    if (it.type === 'image') h += `<div class="rf"><label>${it.label}</label><div class="imgdrop">${d[it.id] ? `<img src="${d[it.id]}" alt="Схема">` : '<span class="small">Рисунок не загружен</span>'}<input type="file" id="f-${it.id}" accept="image/*" data-img="${it.id}">${d[it.id] ? `<button class="linkbtn" data-delimg="${it.id}">удалить</button>` : ''}</div></div>`;
+    if (it.type === 'image') h += `<div class="rf"><label>${it.label}</label>${tipHTML(hintFor(it.id))}<div class="imgdrop">${d[it.id] ? `<img src="${d[it.id]}" alt="Схема">` : '<span class="small">Рисунок не загружен</span>'}<input type="file" id="f-${it.id}" accept="image/*" data-img="${it.id}">${d[it.id] ? `<button class="linkbtn" data-delimg="${it.id}">удалить</button>` : ''}</div></div>`;
     if (it.type === 'auto') h += `<div class="rf"><label>${it.label}</label><div class="auto" id="auto-${it.id}"></div></div>`;
   });
   h += '</div>';
-  h += `<div class="rsec"><h3>Выводы</h3><div class="rf"><label for="f-concl" class="req">Выводы (5–7 предложений с числами из эксперимента)</label><textarea id="f-concl" data-f="concl" style="min-height:120px">${esc(d.concl)}</textarea></div></div>`;
-  h += `<div class="rsec"><h3>Ответы на контрольные вопросы</h3>` + w.questions.map((q,i) => `<div class="rf"><span class="q req">${i+1}. ${q}</span><textarea data-f="q${i}">${esc(d['q'+i])}</textarea></div>`).join('') + '</div>';
+  h += `<div class="rsec"><h3>Выводы</h3><div class="rf"><label for="f-concl" class="req">Выводы (5–7 предложений с числами из эксперимента)</label>${tipHTML(hintFor('concl'))}<textarea id="f-concl" data-f="concl" style="min-height:120px">${esc(d.concl)}</textarea></div></div>`;
+  h += `<div class="rsec"><h3>Ответы на контрольные вопросы</h3>` + w.questions.map((q,i) => `<div class="rf"><span class="q req">${i+1}. ${q}</span>${tipHTML(((hintFor('q')||[])[i]) ? {tip:'Где искать: ' + hintFor('q')[i] + ' Ответ — 3–6 предложений своими словами и пример из вашего объекта.'} : null)}<textarea data-f="q${i}">${esc(d['q'+i])}</textarea></div>`).join('') + '</div>';
   $('#r-form').innerHTML = h;
   // extra grid rows saved
   w.items.filter(it => it.type === 'grid' && !it.fixed).forEach(it => { const n = (d[it.id] || []).length; for (let r = it.rows; r < n; r++) addRow(it, false); });
@@ -941,14 +1049,78 @@ $('#r-preview').addEventListener('click', () => { $('#r-sheet').innerHTML = bloc
 $('#r-preview-close').addEventListener('click', () => { $('#r-preview-wrap').hidden = true; });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#r-preview-wrap').hidden = true; });
 
+
+/* ============ ПОДСКАЗКИ К ПОЛЯМ ОТЧЁТА ============ */
+// Примеры даны на объекте «вентиляция спортзала» — его нет среди вариантов.
+const HINTS = {
+ 1: {
+  passport: {rows:[
+    'вентиляция спортзала: приточные вентиляторы и датчики зала; котельная — вне границ',
+    'CO₂ ≤ 1000 ppm во время занятий при минимальном расходе электроэнергии',
+    'CO₂, температура, влажность, число людей в зале',
+    'скорость вентиляторов 0–100 %',
+    'начало занятия, открытая дверь, жара на улице',
+    'MAE прогноза CO₂ на 10 мин, Recall для класса «превышение»',
+    'минуты с CO₂ > 1000 ppm за день, кВт·ч за день, число переключений',
+    'при CO₂ > 1500 ppm — 100 % мощности независимо от модели',
+    'human-on-the-loop: завхоз видит панель и может вмешаться',
+    'датчик CO₂ молчит → работа по расписанию и уведомление'],
+    tip:'Каждая строка — одна-две фразы про ваш объект. Состояние — то, что измеряем; управление — то, чем система может действовать; возмущения — то, что не контролируем (лекция 1, §1.1). Цель обязательно с числом.'},
+  scheme: 'Нарисуйте шесть уровней (источники → интеграция → предобработка → модель → политика → исполнитель) и стрелку обратной связи к объекту. Подпишите на стрелках, что передаётся. Образец — схема в методических указаниях.',
+  placement: {tip:'По одному предложению на каждый уровень: где работает и почему. Критерии выбора — задержка реакции, работа без интернета, объём данных (лекция 2, §2.8).', ex:'Пример: «Источники данных — edge: датчики CO₂ в зале. Политика решения — gateway: аварийное правило должно работать без интернета. Модель — cloud: обучение на истории за месяц».'},
+  which: {tip:'Сравните контуры по трём числам из таблицы: нарушения SLA, стоимость, переключения. Затем объясните, почему «лучший» зависит от цены ошибки.', ex:'Начало: «Замкнутый контур сократил нарушения SLA с … до … минут, но потребовал на …% больше ресурсов…».'},
+  best: {tip:'Назовите лучшую комбинацию из журнала (up, cooldown, N_MAX) и её числа. Объясните пик 3000 мс: что контур «знает» в первую минуту всплеска. Включите прогноз на вкладке ПР-1, запишите опыт и сравните.'},
+  scen: {rows:['входные условия → что делает система → что видит оператор','резкий рост → …','модуль не отвечает → …'], tip:'Формат: условие → действие системы → что видит оператор. Ожидаемый результат должен быть безопасным, даже если модель ошиблась.'},
+  concl: {tip:'5–7 предложений: что сделано; главный числовой результат; компромисс «качество — стоимость»; что из этого важно для вашего объекта. Каждое утверждение — с числом из своего эксперимента.'},
+  q: ['Лекция 1, §1.2. Определите оба контура и приведите пример из своего объекта.','Лекция 2, §2.1 и §2.6. Ключевые слова: изменение требований без переобучения, ограничение прав модели.','Лекция 1, дополнительный разбор (hysteresis, cooldown). Сошлитесь на свой опыт с cooldown = 0.','Лекция 1, §1.7 (safety envelope). Нужны конкретное условие и число.','Лекция 2, §2.8. Что будет при обрыве связи?','Лекция 1, §1.8. Учтите скорость процесса и цену ошибки вашего объекта.']},
+ 2: {
+  catalog: {rows:[['co2','ppm','датчик в зале','30 с','400–5000','среднее','последнее значение не старше 2 мин'],['people','чел.','камера на входе','60 с','0–200','максимум','считать 0 вне расписания']],
+    tip:'Каждая строка — один параметр вашего объекта. Укажите хотя бы две разные частоты. Агрегация: уровни (температура, загрузка) — среднее; счётчики событий — сумма.'},
+  a1: {tip:'Переключите на вкладке ПР-2 «Агрегация CPU» на «Сумма» и посмотрите на значения. Объясните разницу между «уровнем» и «счётчиком событий».'},
+  a2: {tip:'Выберите «По номеру строки» и опишите таблицу, которая появится: какие моменты времени оказались в одной строке и что случилось после строки 180.'},
+  a3: {tip:'Переключайте «Пусто / Обрезать / Оставить» и сравнивайте cpu в 10:08 и 10:20. Чем опасно «правдоподобное, но ложное» значение?'},
+  a4: {tip:'Посмотрите на график и столбец error_share. С какой минуты начался инцидент и что в это время делал CPU?'},
+  feat: {tip:'Формат: имя — как вычисляется — что выявляет. Не менее двух признаков для вашего объекта.', ex:'Пример: co2_rate = CO₂(t) − CO₂(t−1), ppm/мин — показывает, что зал быстро наполняется, раньше чем CO₂ превысит порог.'},
+  json: {tip:'Скопируйте образец из методических указаний и замените входы своими признаками: имя, тип, диапазон, единицы. Не забудьте версию и поведение при нарушении (on_violation).'},
+  skew: {tip:'Сравните cpu_avg при окне 5 и 3 мин на вкладке ПР-2: найдите минуту с наибольшей разницей. Объясните, что будет, если модель обучали на одном окне, а в работе считают другим.'},
+  concl: {tip:'5–7 предложений: сколько дефектов данных найдено (пропуски, выбросы); что даёт ресемплирование; какой производный признак выявил инцидент; чем контракт защищает модель. С числами.'},
+  q: ['Лекция 2, §2.2.','Лекция 2, §2.2: ресемплирование, окна, допустимое рассогласование.','Лекция 2, дополнительный разбор (семантика времени).','Лекция 2, §2.4.','Лекция 2, §2.5.','Лекция 2, §2.4. Приведите пример из своего объекта, не из лекции.']},
+ 3: {
+  terms: {rows:[['co2_high','co2','≥ 1000 ppm','санитарные нормы'],['people_many','people','≥ 30 чел.','вместимость зала']],
+    tip:'Терм — понятие с точным порогом. Пороги не должны оставлять пробелов: проверьте, что каждому значению параметра соответствует какой-то терм. Укажите основание: регламент, паспорт, эксперт.'},
+  order: {tip:'На вкладке ПР-3 нажмите «Сначала», затем «Следующий шаг». Для каждого шага запишите агенду (какие правила были применимы) и почему выбрано именно это правило.'},
+  defects: {tip:'Для каждого дефекта: где он проявился (полоса покрытия, столбец «Противоречие», тест) и к какому типу относится по таблице 3.2 конспекта: пробел, противоречие, цикл…'},
+  fix: {tip:'Опишите, что вы добавили или изменили. Объясните, почему правило «STATE:normal — только если нет действий» относится к метазнаниям: это знание о том, когда применять другие знания (лекция 3, §3.1).'},
+  rules: {rows:[['R1','co2_high И people_many','air_bad','10','санитарные нормы'],['R2','air_bad','ACTION:fan_100','30','инструкция завхоза']],
+    tip:'Не менее 10 правил. Хотя бы одна цепочка: факт → промежуточный вывод → ещё вывод → действие. Защитному правилу дайте наибольший приоритет.'},
+  mytests: {rows:[['пограничный','co2 = 1000, people = 20','ACTION:fan_70']],
+    tip:'Шесть сценариев: штатный, пограничный (ровно на пороге), аварийный, конфликтный, с неполными данными (одного измерения нет) и свой. Для каждого — точные значения и ожидаемое действие или состояние.'},
+  cycle: {tip:'Только для способа Python. Вставьте код функции и вывод программы до и после добавления правила overheat_risk → resource_pressure.'},
+  concl: {tip:'5–7 предложений: сколько правил и тестов в вашей базе; какие дефекты найдены и как исправлены; почему пройденные тесты ещё не доказывают правильность базы.'},
+  q: ['Лекция 3, §3.1. Все четыре понятия — на примерах из вашей базы.','Лекция 3, дополнительный разбор (provenance).','Лекция 3, §3.5. Сошлитесь на порядок шагов из задания 2.','Лекция 3, §3.11. Какие сценарии тесты не проверяли?','Лекция 4 (экспертные системы и логический вывод).','Лекция 3, §3.3: проблема чёткого порога.']}
+};
+const hintFor = id => (HINTS[WORK] || {})[id];
+function tipHTML(h){
+  if (!h) return '';
+  const t = typeof h === 'string' ? {tip:h} : h;
+  if (!t.tip && !t.ex) return '';
+  return `<details class="tip"><summary>Что писать</summary><p>${esc(t.tip || '')}</p>${t.ex ? `<p class="ex">${esc(t.ex)}</p>` : ''}</details>`;
+}
+function placeholderFor(id, r, c){
+  const h = hintFor(id); if (!h || !h.rows) return '';
+  const row = h.rows[r]; if (row == null) return '';
+  return Array.isArray(row) ? (row[c] || '') : (c === 1 ? row : '');
+}
+
 /* ---------- Start ---------- */
 function drawAll(){ draw1(); draw2(); }
 window.addEventListener('resize', drawAll);
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawAll);
 new MutationObserver(drawAll).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 run1(); run2(); run3(); renderLog(); renderForm();
-const start = ['pr1','pr2','pr3','rep'].includes(location.hash.slice(1)) ? location.hash.slice(1) : store.get('isu-tab', 'pr1');
-showTab(['pr1','pr2','pr3','rep'].includes(start) ? start : 'pr1');
+const start = ['start','pr1','pr2','pr3','rep'].includes(location.hash.slice(1)) ? location.hash.slice(1) : store.get('isu-tab', 'start');
+showTab(['start','pr1','pr2','pr3','rep'].includes(start) ? start : 'start');
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { history.replaceState(null, '', '#' + b.dataset.go); showTab(b.dataset.go); scrollTo(0, 0); }));
 document.fonts?.ready.then(drawAll);
 </script>
 
