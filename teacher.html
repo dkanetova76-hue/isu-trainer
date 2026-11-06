@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Кабинет преподавателя · ИСУ</title>
+<title>Кабинет преподавателя</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
@@ -75,7 +75,7 @@ dialog::backdrop{background:rgba(10,20,40,.45)}
 <body>
 <div class="wrap">
   <header>
-    <div><h1>Кабинет преподавателя</h1><p class="sub">Интеллектуальные системы управления · сводка по студентам, тестам и отчётам</p></div>
+    <div><h1>Кабинет преподавателя</h1><p class="sub" id="sub">Сводка по студентам, тестам и отчётам</p></div>
     <div class="acct" id="acct"><a class="btn ghost" href="index.html">← Учебник</a></div>
   </header>
   <div id="app"><div class="panel empty">Загрузка…</div></div>
@@ -85,10 +85,31 @@ dialog::backdrop{background:rgba(10,20,40,.45)}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const CFG = (window.ISU_CLOUD && ISU_CLOUD.url && ISU_CLOUD.key) ? ISU_CLOUD : null;
-const LEC = ['Основы ИСУ','Архитектура ИСУ','Представление знаний','Экспертные системы','Нечёткие множества','Мамдани и Сугено','Машинное обучение','Прогноз и аномалии','Нейронные сети','СППР, IoT, двойники'];
-const PRN = ['Контур управления','Данные и контракт','База знаний','Экспертная система','Функции принадлежности','Система Мамдани','Регулятор в контуре','Подготовка данных МО','Регрессия и прогноз','Классификация состояний','Обнаружение аномалий','Нейросеть MLP','СППР','Итоговый проект'];
-const TESTIDS = [...LEC.map((_, i) => 'L' + (i + 1)), 'FT', ...PRN.map((_, i) => 'P' + (i + 1)), 'FP'];
-const TNAME = id => id === 'FT' ? 'Итоговый тест: теория' : id === 'FP' ? 'Итоговый тест: практика' : id[0] === 'L' ? `Лекция ${id.slice(1)}. ${LEC[+id.slice(1) - 1]}` : `ПР-${id.slice(1)}. ${PRN[+id.slice(1) - 1]}`;
+/* ---------- курсы: каждый учебник пишет в общую базу, кабинет показывает выбранный ---------- */
+const COURSES = {
+  isu: {name:'Интеллектуальные системы управления', short:'ИСУ', book:'index.html'},
+  kuod: {name:'Корпоративное управление и организационный дизайн', short:'КУОД', book:'https://dkanetova76-hue.github.io/kuod-trainer/'}
+};
+let COURSE = localStorage.getItem('isu-t-course') || 'isu', HAS_COURSE = true;
+const ISU_LEC = ['Основы ИСУ','Архитектура ИСУ','Представление знаний','Экспертные системы','Нечёткие множества','Мамдани и Сугено','Машинное обучение','Прогноз и аномалии','Нейронные сети','СППР, IoT, двойники'];
+const ISU_PRN = ['Контур управления','Данные и контракт','База знаний','Экспертная система','Функции принадлежности','Система Мамдани','Регулятор в контуре','Подготовка данных МО','Регрессия и прогноз','Классификация состояний','Обнаружение аномалий','Нейросеть MLP','СППР','Итоговый проект'];
+const KU_LEC = ['Основы корпоративного управления','Модели КУ и стратегические решения','Стратегия и архитектура предприятия','КУ в цифровой трансформации','Организационный дизайн','Оргструктуры и полномочия','Процессный подход','Цифровые технологии и ИИ','Культура и изменения','Оценка эффективности'];
+const KU_PZ = ['Теории КУ','Национальное и международное КУ','Стратегия и архитектура','Цифровая зрелость','Оргструктура и RACI','Сравнение оргмоделей','Бизнес-процессы AS-IS/TO-BE','ИИ в оргпроектировании','Управление изменениями','Комплексная оценка','Риски и внутренний контроль','IT-инвестиции и портфель','Данные, ИБ и ИИ','Итоговый практикум'];
+const KU_SRM = ['Теории и модели КУ','Национальная и международная компания','Корпоративная стратегия','Цифровая зрелость','Оргструктура и полномочия','Оргмодели','Бизнес-процесс','Обоснование ИИ','Готовность к изменениям','Оценка эффективности КУ','Риски, данные, инвестиции','Итоговый проект'];
+const KU_TESTS = [['B1','Уровень 1 · Запоминание','Б1'],['B2','Уровень 2 · Понимание','Б2'],['B3','Уровень 3 · Применение','Б3'],['B4','Уровень 4 · Анализ','Б4'],['B5','Уровень 5 · Оценка','Б5'],['M1','Модуль М1','М1'],['M2','Модуль М2','М2'],['M3','Модуль М3','М3'],['FIN','Рубежный контроль','Рубеж'],['ALL','Весь банк (60)','Все']];
+const CC = {
+  isu: {LEC: ISU_LEC, PRACT: ISU_PRN.length, prLabel:'Практики',
+    TESTS: [...ISU_LEC.map((n, i) => ['L' + (i + 1), `Лекция ${i + 1}. ${n}`, 'Л' + (i + 1)]), ['FT', 'Итоговый тест: теория', 'Итог Т'], ...ISU_PRN.map((n, i) => ['P' + (i + 1), `ПР-${i + 1}. ${n}`, 'ПР' + (i + 1)]), ['FP', 'Итоговый тест: практика', 'Итог П']],
+    REPS: ISU_PRN.map((n, i) => ['PR' + (i + 1), `ПР-${i + 1}. ${n}`, 'ПР' + (i + 1)])},
+  kuod: {LEC: KU_LEC, PRACT: KU_PZ.length, prLabel:'Практ. занятия',
+    TESTS: KU_TESTS,
+    REPS: [...KU_PZ.map((n, i) => ['PZ' + (i + 1), `ПЗ-${i + 1}. ${n}`, 'ПЗ' + (i + 1)]), ...KU_SRM.map((n, i) => ['SRM' + (i + 1), `СРМ-${i + 1}. ${n}`, 'С' + (i + 1)])]}
+};
+const C = () => CC[COURSE] || CC.isu;
+let LEC = ISU_LEC, PRN = ISU_PRN;
+const TESTIDS_ = () => C().TESTS.map(t => t[0]);
+const TNAME = id => { const t = C().TESTS.find(x => x[0] === id) || C().REPS.find(x => x[0] === id); return t ? t[1] : id; };
+const isKu = s => !!(s && s.data && s.data.course === 'kuod') || /^(PZ|SRM)\d+$/.test((s && s.ref) || '') || /^(B\d|M\d|FIN|ALL)$/.test((s && s.ref) || '');
 const BLOOM = ['', 'Запоминание', 'Понимание', 'Применение', 'Анализ', 'Оценивание', 'Создание'];
 const gradeOf = p => p == null ? 0 : p >= 85 ? 5 : p >= 70 ? 4 : p >= 55 ? 3 : 2;
 const dt = s => s ? new Date(s).toLocaleString('ru-RU', {dateStyle:'short', timeStyle:'short'}) : '—';
@@ -109,7 +130,7 @@ async function init(){
   if (data && data.session) await afterLogin(data.session.user); else loginForm();
 }
 function loginForm(msg){
-  $('#acct').innerHTML = '<a class="btn ghost" href="index.html">← Учебник</a>';
+  $('#acct').innerHTML = `<a class="btn ghost" href="${COURSES[COURSE].book}">← Учебник</a>`;
   $('#app').innerHTML = `<div class="panel" style="max-width:440px"><h2>Вход преподавателя</h2>
     <label class="fld">Электронная почта<input id="l-email" type="email" autocomplete="email"></label>
     <label class="fld">Пароль<input id="l-pass" type="password" autocomplete="current-password"></label>
@@ -128,21 +149,28 @@ async function afterLogin(user){
   const {data} = await SB.from('profiles').select('id,fio,grp,role').eq('id', user.id).single();
   if (!data || data.role !== 'teacher'){ await SB.auth.signOut(); loginForm('У этой учётной записи нет прав преподавателя.'); return; }
   ME = data;
-  $('#acct').innerHTML = `<span><b>${esc(ME.fio)}</b></span><a class="btn ghost" href="index.html">← Учебник</a><button class="btn ghost" id="logout">Выйти</button>`;
+  $('#acct').innerHTML = `<span><b>${esc(ME.fio)}</b></span><a class="btn ghost" id="booklink" href="${COURSES[COURSE].book}">← Учебник</a><button class="btn ghost" id="logout">Выйти</button>`;
   $('#logout').onclick = async () => { await SB.auth.signOut(); ME = null; loginForm(); };
   $('#app').innerHTML = `<div class="bar">
+      <div class="seg" id="courses" aria-label="Дисциплина">${Object.entries(COURSES).map(([k, c]) => `<button data-c="${k}" aria-pressed="${k === COURSE}" title="${esc(c.name)}">${c.short}</button>`).join('')}</div>
       <select id="grp" aria-label="Группа"></select>
       <div class="seg" id="views">${[['over','Обзор'],['tests','Тесты'],['reps','Отчёты'],['queue','На проверку'],['groups','Группы и коды']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${k === VIEW}">${t}${k === 'queue' ? '<span class="cnt" id="qcnt" hidden></span>' : ''}</button>`).join('')}</div>
       <button class="btn ghost" id="reload">Обновить</button><button class="btn ghost" id="csv">Скачать CSV</button><span class="small" id="upd"></span></div>
     <div id="view"></div>`;
   $('#views').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; VIEW = b.dataset.v; localStorage.setItem('isu-t-view', VIEW); document.querySelectorAll('#views button').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
+  $('#courses').onclick = async e => { const b = e.target.closest('[data-c]'); if (!b || b.dataset.c === COURSE) return; COURSE = b.dataset.c; localStorage.setItem('isu-t-course', COURSE); GRP = ''; localStorage.setItem('isu-t-grp', ''); document.querySelectorAll('#courses button').forEach(x => x.setAttribute('aria-pressed', x === b)); setCourseUI(); await loadGroups(); await load(); };
+  setCourseUI();
   $('#grp').onchange = () => { GRP = $('#grp').value; localStorage.setItem('isu-t-grp', GRP); load(); };
   $('#reload').onclick = load; $('#csv').onclick = csv;
   await loadGroups(); await load();
 }
+function setCourseUI(){ $('#sub').textContent = COURSES[COURSE].name + ' · сводка по студентам, тестам и отчётам'; const bl = $('#booklink'); if (bl) bl.href = COURSES[COURSE].book; document.title = 'Кабинет преподавателя · ' + COURSES[COURSE].short; }
+let ALLGROUPS = [];
 async function loadGroups(){
-  const {data} = await SB.from('groups').select('code,name,is_teacher,active,created_at').order('name');
-  GROUPS = (data || []).filter(g => !g.is_teacher);
+  let r = await SB.from('groups').select('code,name,is_teacher,active,created_at,course').order('name');
+  if (r.error){ HAS_COURSE = false; r = await SB.from('groups').select('code,name,is_teacher,active,created_at').order('name'); }
+  ALLGROUPS = (r.data || []).filter(g => !g.is_teacher).map(g => ({...g, course: g.course || 'isu'}));
+  GROUPS = ALLGROUPS.filter(g => g.course === COURSE);
   const names = [...new Set(GROUPS.map(g => g.name))];
   if (GRP && !names.includes(GRP)) GRP = '';
   $('#grp').innerHTML = `<option value="">Все группы</option>` + names.map(n => `<option ${n === GRP ? 'selected' : ''}>${esc(n)}</option>`).join('');
@@ -152,13 +180,15 @@ async function load(){
   const p = {p_grp: GRP || null};
   const [a, b, q] = await Promise.all([SB.rpc('group_activity', p), SB.rpc('group_best', p), loadQueue()]);
   if (a.error || b.error){ $('#view').innerHTML = `<div class="panel err">Ошибка загрузки: ${esc((a.error || b.error).message)}</div>`; return; }
-  ACT = a.data || []; BEST = b.data || []; QUEUE = q;
+  const cg = new Set(GROUPS.map(g => g.name));
+  ACT = (a.data || []).filter(x => cg.has(x.grp)); const uids = new Set(ACT.map(x => x.user_id));
+  BEST = (b.data || []).filter(x => uids.has(x.user_id)); QUEUE = q.filter(x => cg.has(x.profiles.grp));
   $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length;
   $('#upd').textContent = 'Обновлено ' + new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
   render();
 }
 async function loadQueue(){
-  let q = SB.from('submissions').select('id,kind,ref,title,score,created_at,user_id,file_path,open:data->open,profiles!inner(fio,grp)').is('checked_at', null).order('created_at', {ascending:true}).limit(500);
+  let q = SB.from('submissions').select('id,kind,ref,title,score,created_at,user_id,file_path,open:data->open,course:data->course,profiles!inner(fio,grp)').is('checked_at', null).order('created_at', {ascending:true}).limit(500);
   if (GRP) q = q.eq('profiles.grp', GRP);
   const {data} = await q;
   return (data || []).filter(s => s.kind === 'report' || (Array.isArray(s.open) && s.open.some(o => (o.a || '').trim())));
@@ -166,7 +196,8 @@ async function loadQueue(){
 const best = (uid, kind, ref) => BEST.find(r => r.user_id === uid && r.kind === kind && r.ref === ref);
 function rows(){
   return ACT.map(s => {
-    const tests = BEST.filter(r => r.user_id === s.user_id && r.kind === 'test'), reps = BEST.filter(r => r.user_id === s.user_id && r.kind === 'report');
+    const tids = new Set(TESTIDS_()), rids = new Set(C().REPS.map(x => x[0]));
+    const tests = BEST.filter(r => r.user_id === s.user_id && r.kind === 'test' && tids.has(r.ref)), reps = BEST.filter(r => r.user_id === s.user_id && r.kind === 'report' && rids.has(r.ref));
     return {...s, tests: tests.length, tavg: tests.length ? tests.reduce((x, r) => x + +r.best, 0) / tests.length : null, reps: reps.length, hours: +s.minutes / 60, lo: s.lectures_opened.length, ld: s.lectures_done.length, pr: s.practices.length};
   }).sort((a, b) => { const x = a[SORT.k], y = b[SORT.k]; if (typeof x === 'string' || typeof y === 'string') return String(x ?? '').localeCompare(String(y ?? ''), 'ru') * SORT.d; return (x == null ? -1e9 : x) > (y == null ? -1e9 : y) ? SORT.d : (x == null ? -1e9 : x) < (y == null ? -1e9 : y) ? -SORT.d : 0; });
 }
@@ -182,19 +213,19 @@ function render(){
     <div class="stat"><b>${tot.tavg.length ? fmt(tot.tavg.reduce((s, r) => s + r.tavg, 0) / tot.tavg.length, 0) + ' %' : '—'}</b><span class="small">средний результат тестов</span></div><div class="stat"><b>${tot.reps}</b><span class="small">отчётов сдано</span></div>
     <div class="stat"><b>${QUEUE.length}</b><span class="small">ждут проверки</span></div></div>`;
   if (VIEW === 'over'){
-    h += `<div class="tbl"><table><thead><tr><th class="num">№</th>${sortHead('fio', 'Студент', 'stu')}${GRP ? '' : sortHead('grp', 'Группа')}${sortHead('last_at', 'Последняя активность')}${sortHead('days', 'Дней', 'num')}${sortHead('hours', 'Часов', 'num')}${sortHead('lo', 'Лекции откр.', 'num')}${sortHead('ld', 'Лекции изуч.', 'num')}${sortHead('pr', 'Практики', 'num')}${sortHead('tests', 'Тестов', 'num')}${sortHead('tavg', 'Средн. тест', 'num')}${sortHead('reps', 'Отчётов', 'num')}${sortHead('paste', 'Вставок', 'num')}</tr></thead><tbody>`
+    h += `<div class="tbl"><table><thead><tr><th class="num">№</th>${sortHead('fio', 'Студент', 'stu')}${GRP ? '' : sortHead('grp', 'Группа')}${sortHead('last_at', 'Последняя активность')}${sortHead('days', 'Дней', 'num')}${sortHead('hours', 'Часов', 'num')}${sortHead('lo', 'Лекции откр.', 'num')}${sortHead('ld', 'Лекции изуч.', 'num')}${sortHead('pr', C().prLabel, 'num')}${sortHead('tests', 'Тестов', 'num')}${sortHead('tavg', 'Средн. тест', 'num')}${sortHead('reps', 'Отчётов', 'num')}${sortHead('paste', 'Вставок', 'num')}</tr></thead><tbody>`
       + R.map((r, i) => { const idle = !r.last_at || now - new Date(r.last_at) > 14 * 864e5;
-        return `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${GRP ? '' : `<td>${esc(r.grp)}</td>`}<td class="${idle ? 'err' : ''}">${dt(r.last_at)}</td><td class="num">${r.days}</td><td class="num">${fmt(r.hours)}</td><td class="num">${r.lo}/10</td><td class="num">${r.ld}/10</td><td class="num">${r.pr}/14</td><td class="num">${r.tests}/26</td><td class="num">${r.tavg == null ? '—' : `<span class="c c${gradeOf(r.tavg)}">${fmt(r.tavg, 0)}</span>`}</td><td class="num">${r.reps}/14</td><td class="num ${r.paste > 5 ? 'err' : ''}">${r.paste}</td></tr>`; }).join('') + '</tbody></table></div>'
+        return `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${GRP ? '' : `<td>${esc(r.grp)}</td>`}<td class="${idle ? 'err' : ''}">${dt(r.last_at)}</td><td class="num">${r.days}</td><td class="num">${fmt(r.hours)}</td><td class="num">${r.lo}/${C().LEC.length}</td><td class="num">${r.ld}/${C().LEC.length}</td><td class="num">${r.pr}/${C().PRACT}</td><td class="num">${r.tests}/${TESTIDS_().length}</td><td class="num">${r.tavg == null ? '—' : `<span class="c c${gradeOf(r.tavg)}">${fmt(r.tavg, 0)}</span>`}</td><td class="num">${r.reps}/${C().REPS.length}</td><td class="num ${r.paste > 5 ? 'err' : ''}">${r.paste}</td></tr>`; }).join('') + '</tbody></table></div>'
       + '<p class="small">Время считается только активное (вкладка открыта и студент что-то делает). Красным: нет активности 14+ дней; больше 5 попыток вставки. Щелчок по ФИО — карточка студента.</p>';
   }
   if (VIEW === 'tests'){
-    h += `<div class="tbl"><table><thead><tr>${sortHead('fio', 'Студент', 'stu')}${TESTIDS.map(id => `<th class="num" title="${esc(TNAME(id))}">${id === 'FT' ? 'Итог Т' : id === 'FP' ? 'Итог П' : id[0] === 'L' ? 'Л' + id.slice(1) : 'ПР' + id.slice(1)}</th>`).join('')}${sortHead('tavg', 'Средн.', 'num')}</tr></thead><tbody>`
-      + R.map(r => `<tr><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${TESTIDS.map(id => { const b = best(r.user_id, 'test', id); return `<td class="num">${b ? `<span class="c c${gradeOf(+b.best)}" data-stu="${r.user_id}" data-ref="${id}" title="${esc(TNAME(id))}: лучший ${b.best} %, попыток ${b.attempts}">${fmt(+b.best, 0)}<span class="att">×${b.attempts}</span></span>` : '<span class="c0">·</span>'}</td>`; }).join('')}<td class="num">${r.tavg == null ? '—' : fmt(r.tavg, 0)}</td></tr>`).join('') + '</tbody></table></div>'
+    h += `<div class="tbl"><table><thead><tr>${sortHead('fio', 'Студент', 'stu')}${C().TESTS.map(t => `<th class="num" title="${esc(t[1])}">${esc(t[2])}</th>`).join('')}${sortHead('tavg', 'Средн.', 'num')}</tr></thead><tbody>`
+      + R.map(r => `<tr><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${TESTIDS_().map(id => { const b = best(r.user_id, 'test', id); return `<td class="num">${b ? `<span class="c c${gradeOf(+b.best)}" data-stu="${r.user_id}" data-ref="${id}" title="${esc(TNAME(id))}: лучший ${b.best} %, попыток ${b.attempts}">${fmt(+b.best, 0)}<span class="att">×${b.attempts}</span></span>` : '<span class="c0">·</span>'}</td>`; }).join('')}<td class="num">${r.tavg == null ? '—' : fmt(r.tavg, 0)}</td></tr>`).join('') + '</tbody></table></div>'
       + '<p class="small">Лучший результат автопроверки, %; «×N» — число попыток. Цвет — оценка по шкале теста (85/70/55 %). Щелчок по ячейке — все попытки студента.</p>';
   }
   if (VIEW === 'reps'){
-    h += `<div class="tbl"><table><thead><tr>${sortHead('fio', 'Студент', 'stu')}${PRN.map((n, i) => `<th class="num" title="ПР-${i + 1}. ${esc(n)}">ПР${i + 1}</th>`).join('')}${sortHead('reps', 'Сдано', 'num')}</tr></thead><tbody>`
-      + R.map(r => `<tr><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${PRN.map((_, i) => { const b = best(r.user_id, 'report', 'PR' + (i + 1)); return `<td class="num">${b ? `<span class="c ${b.teacher_grade ? 'c' + b.teacher_grade : 'c4'}" data-stu="${r.user_id}" data-ref="PR${i + 1}" title="Сдано ${dt(b.last_at)}, версий: ${b.attempts}">${b.teacher_grade ? b.teacher_grade : '✓'}${b.attempts > 1 ? `<span class="att">×${b.attempts}</span>` : ''}</span>` : '<span class="c0">·</span>'}</td>`; }).join('')}<td class="num">${r.reps}/14</td></tr>`).join('') + '</tbody></table></div>'
+    h += `<div class="tbl"><table><thead><tr>${sortHead('fio', 'Студент', 'stu')}${C().REPS.map(t => `<th class="num" title="${esc(t[1])}">${esc(t[2])}</th>`).join('')}${sortHead('reps', 'Сдано', 'num')}</tr></thead><tbody>`
+      + R.map(r => `<tr><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${C().REPS.map(t => { const b = best(r.user_id, 'report', t[0]); return `<td class="num">${b ? `<span class="c ${b.teacher_grade ? 'c' + b.teacher_grade : 'c4'}" data-stu="${r.user_id}" data-ref="${t[0]}" title="Сдано ${dt(b.last_at)}, версий: ${b.attempts}">${b.teacher_grade ? b.teacher_grade : '✓'}${b.attempts > 1 ? `<span class="att">×${b.attempts}</span>` : ''}</span>` : '<span class="c0">·</span>'}</td>`; }).join('')}<td class="num">${r.reps}/${C().REPS.length}</td></tr>`).join('') + '</tbody></table></div>'
       + '<p class="small">✓ — сдан, не проверен; цифра — ваша оценка последней проверенной версии. Щелчок — открыть отчёт и выставить оценку.</p>';
   }
   v.innerHTML = h;
@@ -216,6 +247,7 @@ function renderQueue(){
 function renderGroups(){
   const cnt = n => ACT.filter(a => a.grp === n).length;
   $('#view').innerHTML = `<div class="panel" style="max-width:860px"><h2>Группы и коды регистрации</h2>
+    ${HAS_COURSE ? `<p class="small">Новая группа создаётся для дисциплины <b>${esc(COURSES[COURSE].name)}</b> — переключите вверху, если нужна другая.</p>` : '<p class="err small">В базе нет поля «дисциплина» у групп: все группы считаются группами ИСУ. Выполните SQL-скрипт обновления (одна строка) из инструкции.</p>'}
     <p class="small">Студент при регистрации вводит код группы — так он попадает в нужную группу. После окончания набора код можно закрыть: зарегистрированные студенты продолжат работать.</p>
     <div class="bar"><input id="g-name" placeholder="Название группы, напр. ИТУ-22" style="min-width:240px"><button class="btn" id="g-add">Создать группу</button><span id="g-msg"></span></div>
     ${GROUPS.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th>Группа</th><th>Код для студентов</th><th class="num">Студентов</th><th>Регистрация</th><th></th></tr></thead><tbody>${GROUPS.map(g => `<tr><td><b>${esc(g.name)}</b></td><td><code style="font:600 15px var(--f-mono)">${esc(g.code)}</code> <button class="linkbtn" data-copy="${esc(g.code)}">копировать</button></td><td class="num">${GRP && GRP !== g.name ? '—' : cnt(g.name)}</td><td>${g.active ? '<span class="ok">открыта</span>' : '<span class="small">закрыта</span>'}</td><td><button class="linkbtn" data-toggle="${esc(g.code)}">${g.active ? 'закрыть' : 'открыть'}</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="small">Групп пока нет.</p>'}</div>`;
@@ -224,7 +256,7 @@ function renderGroups(){
     const base = name.toUpperCase().replace(/[^A-ZА-ЯЁ0-9]+/g, '').slice(0, 8) || 'GR', rnd = Array.from(crypto.getRandomValues(new Uint8Array(3)), b => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32]).join('');
     const tr = {'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'E','Ж':'J','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'H','Ц':'C','Ч':'CH','Ш':'SH','Щ':'SH','Ы':'Y','Э':'E','Ю':'YU','Я':'YA'};
     const code = [...base].map(c => tr[c] ?? (/[ЪЬ]/.test(c) ? '' : c)).join('') + '-' + rnd;
-    const {error} = await SB.from('groups').insert({code, name});
+    const {error} = await SB.from('groups').insert(HAS_COURSE ? {code, name, course: COURSE} : {code, name});
     if (error){ $('#g-msg').className = 'err'; $('#g-msg').textContent = error.message; return; }
     await loadGroups(); renderGroups(); $('#g-msg').className = 'ok'; $('#g-msg').textContent = `Группа «${name}» создана. Код для студентов: ${code}`;
   };
@@ -243,9 +275,9 @@ async function openStudent(uid, ref, focusId){
   const EVN = {login:'вход', lecture:'открыл лекцию', lecture_done:'отметил лекцию изученной', practice:'открыл практическую работу', test_start:'начал тест', paste:'попытка вставки'};
   d.innerHTML = `<button class="linkbtn dx" data-dx>✕ закрыть</button><h2>${esc(a.fio || '')}</h2>
     <p class="small">${esc(a.grp || '')} · ${esc(a.email || '')} · зарегистрирован ${dt(a.registered)} · последняя активность ${dt(a.last_at)}</p>
-    <div class="stats"><div class="stat"><b>${a.days ?? 0}</b><span class="small">дней работы</span></div><div class="stat"><b>${fmt((a.minutes || 0) / 60)}</b><span class="small">часов активно</span></div><div class="stat"><b>${(a.practices || []).length}/14</b><span class="small">практик открыто</span></div><div class="stat"><b>${a.paste ?? 0}</b><span class="small">попыток вставки</span></div></div>
-    <p class="small"><b>Лекции:</b> ${LEC.map((_, i) => `Л${i + 1} ${lec(i + 1)}`).join(' ')}</p>
-    <h2 style="margin-top:14px">${ref ? 'Работы: ' + esc(ref[0] === 'P' && ref[1] === 'R' ? 'отчёт ' + ref : TNAME(ref)) + ' <button class="linkbtn" data-stu="' + uid + '">показать все</button>' : 'Все сданные работы'} (${subs.length})</h2>
+    <div class="stats"><div class="stat"><b>${a.days ?? 0}</b><span class="small">дней работы</span></div><div class="stat"><b>${fmt((a.minutes || 0) / 60)}</b><span class="small">часов активно</span></div><div class="stat"><b>${(a.practices || []).length}/${C().PRACT}</b><span class="small">${COURSE === 'kuod' ? 'занятий открыто' : 'практик открыто'}</span></div><div class="stat"><b>${a.paste ?? 0}</b><span class="small">попыток вставки</span></div></div>
+    <p class="small"><b>Лекции:</b> ${C().LEC.map((_, i) => `Л${i + 1} ${lec(i + 1)}`).join(' ')}</p>
+    <h2 style="margin-top:14px">${ref ? 'Работы: ' + esc(TNAME(ref)) + ' <button class="linkbtn" data-stu="' + uid + '">показать все</button>' : 'Все сданные работы'} (${subs.length})</h2>
     ${subs.length ? subs.map(x => subHTML(x, focusId)).join('') : '<p class="small">Нет сданных работ.</p>'}
     <details class="sb"><summary><b>Журнал действий</b> <span class="small">последние ${(ev.data || []).length}</span></summary><table><tbody>${(ev.data || []).map(e => `<tr><td class="small">${dt(e.at)}</td><td>${EVN[e.kind] || esc(e.kind)} ${esc(e.ref || '')}</td></tr>`).join('')}</tbody></table></details>`;
   const f = (focusId && d.querySelector(`[data-sid="${focusId}"]`)) || (ref && d.querySelector('details.sb[data-sid]')); if (f){ f.open = true; if (focusId) f.scrollIntoView({block:'start'}); }
@@ -285,12 +317,12 @@ async function saveGrade(id, btn){
 }
 $('#dlg').addEventListener('close', () => { if (ME) render(); });
 function csv(){
-  const R = rows(), head = ['ФИО', 'Группа', 'Почта', 'Последняя активность', 'Дней', 'Часов', 'Лекции открыто', 'Лекции изучено', 'Практики', 'Попыток вставки', ...TESTIDS.map(TNAME), ...PRN.map((n, i) => `Отчёт ПР-${i + 1}`)];
+  const R = rows(), head = ['ФИО', 'Группа', 'Почта', 'Последняя активность', 'Дней', 'Часов', 'Лекции открыто', 'Лекции изучено', C().prLabel, 'Попыток вставки', ...C().TESTS.map(t => t[1]), ...C().REPS.map(t => 'Отчёт ' + t[1])];
   const lines = [head, ...R.map(r => [r.fio, r.grp, r.email, dt(r.last_at), r.days, fmt(r.hours), r.lo, r.ld, r.pr, r.paste,
-    ...TESTIDS.map(id => { const b = best(r.user_id, 'test', id); return b ? b.best : ''; }),
-    ...PRN.map((_, i) => { const b = best(r.user_id, 'report', 'PR' + (i + 1)); return b ? (b.teacher_grade || 'сдан') : ''; })])];
+    ...TESTIDS_().map(id => { const b = best(r.user_id, 'test', id); return b ? b.best : ''; }),
+    ...C().REPS.map(t => { const b = best(r.user_id, 'report', t[0]); return b ? (b.teacher_grade || 'сдан') : ''; })])];
   const txt = '﻿' + lines.map(l => l.map(v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';')).join('\r\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'})); a.download = `ISU_${GRP || 'vse'}_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'})); a.download = `${COURSES[COURSE].short}_${GRP || 'vse'}_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 init();
 </script>
