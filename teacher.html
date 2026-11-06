@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кабинет преподавателя · ИСУ</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --ink:#16202b; --muted:#5b6876; --line:#d8dee5; --grid:#e8ecf0;
+  --accent:#1f5fbf; --accent-soft:#e3ecfa; --good:#1d7a4c; --good-soft:#e1f2e8; --warn:#8a5a00; --warn-soft:#fff3d6; --bad:#b4322e; --bad-soft:#fbe6e4;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --panel:#18202a; --ink:#e6ebf0; --muted:#97a3b0; --line:#2c3743; --grid:#222c37;
+  --accent:#6ea2ff; --accent-soft:#1c2c48; --good:#5cc98f; --good-soft:#163526; --warn:#e3a93a; --warn-soft:#3a2d12; --bad:#f07b72; --bad-soft:#3e1e1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --panel:#18202a; --ink:#e6ebf0; --muted:#97a3b0; --line:#2c3743; --grid:#222c37;
+  --accent:#6ea2ff; --accent-soft:#1c2c48; --good:#5cc98f; --good-soft:#163526; --warn:#e3a93a; --warn-soft:#3a2d12; --bad:#f07b72; --bad-soft:#3e1e1d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px;margin-bottom:16px}
+h1{font-family:var(--f-display);font-size:28px;line-height:1.1;margin:0}
+h2{font-family:var(--f-display);font-size:19px;margin:0 0 10px}
+.sub{color:var(--muted);font-size:13.5px;margin:4px 0 0}
+.small{font-size:13px;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:#fff;font:600 13px var(--f-body);padding:8px 12px;border-radius:5px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--accent)}.btn:disabled{opacity:.5;cursor:default}
+.linkbtn{appearance:none;border:0;background:none;color:var(--accent);font:inherit;padding:0;cursor:pointer;text-decoration:underline}
+input,select,textarea{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:14px var(--f-body)}
+.fld{display:grid;gap:3px;margin:0 0 10px;font-size:13px;color:var(--muted)}
+.acct{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{appearance:none;border:0;border-right:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 13.5px var(--f-body);padding:8px 12px;cursor:pointer}
+.seg button:last-child{border-right:0}.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.cnt{font:600 11px var(--f-mono);background:var(--bad);color:#fff;border-radius:999px;padding:1px 6px;margin-left:4px}
+.tbl{overflow:auto;max-height:calc(100vh - 210px);border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--grid);text-align:left;white-space:nowrap}
+thead th{position:sticky;top:0;background:var(--panel);z-index:2;font:600 11.5px var(--f-mono);letter-spacing:.03em;color:var(--muted);text-transform:uppercase;cursor:pointer;border-bottom:1px solid var(--line)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--accent-soft)}
+td.stu{position:sticky;left:0;background:var(--panel);z-index:1;font-weight:600}tbody tr:hover td.stu{background:var(--accent-soft)}
+thead th.stu{left:0;z-index:3}
+.c{display:inline-block;min-width:44px;text-align:center;border-radius:4px;padding:1px 5px;font:600 12.5px var(--f-mono);cursor:pointer}
+.c5{background:var(--good-soft);color:var(--good)}.c4{background:var(--accent-soft);color:var(--accent)}.c3{background:var(--warn-soft);color:var(--warn)}.c2{background:var(--bad-soft);color:var(--bad)}
+.c0{color:var(--muted)}.att{font-size:10.5px;color:var(--muted);margin-left:2px}
+.pill{font:600 11px var(--f-mono);border-radius:999px;padding:1px 7px;background:var(--bg);border:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
+.stat{background:var(--bg);border-radius:6px;padding:8px 12px}.stat b{display:block;font:700 22px var(--f-display)}
+.sb{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
+.sb summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.sb summary b{font-weight:600}
+.grade{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.grade textarea{flex:1 1 260px;min-height:38px}
+.open-a{white-space:pre-wrap;background:var(--bg);border-radius:6px;padding:10px 12px;margin:6px 0}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:18px 20px;width:min(980px,calc(100vw - 24px));max-height:calc(100vh - 30px)}
+dialog::backdrop{background:rgba(10,20,40,.45)}
+.dx{float:right}
+.ok{color:var(--good)}.err{color:var(--bad)}
+.lvbar{display:grid;grid-template-columns:110px minmax(0,1fr) 46px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.track{height:10px;background:var(--bg);border:1px solid var(--line);border-radius:5px;overflow:hidden}.track span{display:block;height:100%;background:var(--accent)}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+@media (max-width:700px){h1{font-size:23px}.tbl{max-height:none}}
+</style>
+<script src="cloud-config.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>Кабинет преподавателя</h1><p class="sub">Интеллектуальные системы управления · сводка по студентам, тестам и отчётам</p></div>
+    <div class="acct" id="acct"><a class="btn ghost" href="index.html">← Учебник</a></div>
+  </header>
+  <div id="app"><div class="panel empty">Загрузка…</div></div>
+</div>
+<dialog id="dlg"></dialog>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CFG = (window.ISU_CLOUD && ISU_CLOUD.url && ISU_CLOUD.key) ? ISU_CLOUD : null;
+const LEC = ['Основы ИСУ','Архитектура ИСУ','Представление знаний','Экспертные системы','Нечёткие множества','Мамдани и Сугено','Машинное обучение','Прогноз и аномалии','Нейронные сети','СППР, IoT, двойники'];
+const PRN = ['Контур управления','Данные и контракт','База знаний','Экспертная система','Функции принадлежности','Система Мамдани','Регулятор в контуре','Подготовка данных МО','Регрессия и прогноз','Классификация состояний','Обнаружение аномалий','Нейросеть MLP','СППР','Итоговый проект'];
+const TESTIDS = [...LEC.map((_, i) => 'L' + (i + 1)), 'FT', ...PRN.map((_, i) => 'P' + (i + 1)), 'FP'];
+const TNAME = id => id === 'FT' ? 'Итоговый тест: теория' : id === 'FP' ? 'Итоговый тест: практика' : id[0] === 'L' ? `Лекция ${id.slice(1)}. ${LEC[+id.slice(1) - 1]}` : `ПР-${id.slice(1)}. ${PRN[+id.slice(1) - 1]}`;
+const BLOOM = ['', 'Запоминание', 'Понимание', 'Применение', 'Анализ', 'Оценивание', 'Создание'];
+const gradeOf = p => p == null ? 0 : p >= 85 ? 5 : p >= 70 ? 4 : p >= 55 ? 3 : 2;
+const dt = s => s ? new Date(s).toLocaleString('ru-RU', {dateStyle:'short', timeStyle:'short'}) : '—';
+const fmt = (v, d = 1) => v == null ? '—' : (Math.round(v * 10 ** d) / 10 ** d).toLocaleString('ru-RU');
+const SB_URLS = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js', 'https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'];
+let SB = null, ME = null, GROUPS = [], GRP = localStorage.getItem('isu-t-grp') || '', VIEW = localStorage.getItem('isu-t-view') || 'over', ACT = [], BEST = [], QUEUE = [], SORT = {k:'fio', d:1};
+
+function lib(){
+  if (window.__SB_MOCK) return Promise.resolve(window.__SB_MOCK);
+  return new Promise((res, rej) => { let i = 0; const next = () => { if (i >= SB_URLS.length) return rej(new Error('lib')); const s = document.createElement('script'); s.src = SB_URLS[i++]; s.onload = () => window.supabase ? res(window.supabase) : next(); s.onerror = next; document.head.appendChild(s); }; next(); });
+}
+async function init(){
+  if (!CFG){ $('#app').innerHTML = '<div class="panel"><h2>База данных не подключена</h2><p>Откройте файл <b>cloud-config.js</b> в репозитории и впишите адрес проекта Supabase и ключ anon public. Подробно — в инструкции по подключению.</p></div>'; return; }
+  try { SB = (await lib()).createClient(CFG.url, CFG.key, {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}}); }
+  catch(e){ $('#app').innerHTML = '<div class="panel err">Не удалось загрузить библиотеку Supabase. Проверьте интернет.</div>'; return; }
+  SB.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') newPass(); });
+  const {data} = await SB.auth.getSession();
+  if (data && data.session) await afterLogin(data.session.user); else loginForm();
+}
+function loginForm(msg){
+  $('#acct').innerHTML = '<a class="btn ghost" href="index.html">← Учебник</a>';
+  $('#app').innerHTML = `<div class="panel" style="max-width:440px"><h2>Вход преподавателя</h2>
+    <label class="fld">Электронная почта<input id="l-email" type="email" autocomplete="email"></label>
+    <label class="fld">Пароль<input id="l-pass" type="password" autocomplete="current-password"></label>
+    <div class="bar"><button class="btn" id="l-go">Войти</button><button class="linkbtn" id="l-reset">Забыли пароль?</button></div>
+    <p id="l-msg" class="${msg ? 'err' : ''}">${esc(msg || '')}</p>
+    <p class="small">Первый вход: зарегистрируйтесь в учебнике (кнопка «Регистрация») с <b>кодом преподавателя</b>, который показал SQL-скрипт при настройке базы.</p></div>`;
+  const go = async () => { const {data, error} = await SB.auth.signInWithPassword({email: $('#l-email').value.trim(), password: $('#l-pass').value}); if (error){ $('#l-msg').className = 'err'; $('#l-msg').textContent = /Invalid/.test(error.message) ? 'Неверная почта или пароль.' : error.message; } else afterLogin(data.user); };
+  $('#l-go').onclick = go; $('#l-pass').onkeydown = e => { if (e.key === 'Enter') go(); };
+  $('#l-reset').onclick = async () => { const em = $('#l-email').value.trim(); if (!em){ $('#l-msg').textContent = 'Впишите почту.'; return; } const {error} = await SB.auth.resetPasswordForEmail(em, {redirectTo: location.href.split('#')[0]}); $('#l-msg').className = error ? 'err' : 'ok'; $('#l-msg').textContent = error ? error.message : 'Ссылка для смены пароля отправлена на почту.'; };
+}
+function newPass(){
+  const d = $('#dlg'); d.innerHTML = `<h2>Новый пароль</h2><label class="fld">Пароль (не меньше 6 знаков)<input id="np" type="password" autocomplete="new-password"></label><button class="btn" id="np-go">Сохранить</button> <span id="np-m"></span>`;
+  d.showModal(); $('#np-go').onclick = async () => { const {error} = await SB.auth.updateUser({password: $('#np').value}); $('#np-m').className = error ? 'err' : 'ok'; $('#np-m').textContent = error ? error.message : 'Сохранено.'; if (!error) setTimeout(() => d.close(), 800); };
+}
+async function afterLogin(user){
+  const {data} = await SB.from('profiles').select('id,fio,grp,role').eq('id', user.id).single();
+  if (!data || data.role !== 'teacher'){ await SB.auth.signOut(); loginForm('У этой учётной записи нет прав преподавателя.'); return; }
+  ME = data;
+  $('#acct').innerHTML = `<span><b>${esc(ME.fio)}</b></span><a class="btn ghost" href="index.html">← Учебник</a><button class="btn ghost" id="logout">Выйти</button>`;
+  $('#logout').onclick = async () => { await SB.auth.signOut(); ME = null; loginForm(); };
+  $('#app').innerHTML = `<div class="bar">
+      <select id="grp" aria-label="Группа"></select>
+      <div class="seg" id="views">${[['over','Обзор'],['tests','Тесты'],['reps','Отчёты'],['queue','На проверку'],['groups','Группы и коды']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${k === VIEW}">${t}${k === 'queue' ? '<span class="cnt" id="qcnt" hidden></span>' : ''}</button>`).join('')}</div>
+      <button class="btn ghost" id="reload">Обновить</button><button class="btn ghost" id="csv">Скачать CSV</button><span class="small" id="upd"></span></div>
+    <div id="view"></div>`;
+  $('#views').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; VIEW = b.dataset.v; localStorage.setItem('isu-t-view', VIEW); document.querySelectorAll('#views button').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
+  $('#grp').onchange = () => { GRP = $('#grp').value; localStorage.setItem('isu-t-grp', GRP); load(); };
+  $('#reload').onclick = load; $('#csv').onclick = csv;
+  await loadGroups(); await load();
+}
+async function loadGroups(){
+  const {data} = await SB.from('groups').select('code,name,is_teacher,active,created_at').order('name');
+  GROUPS = (data || []).filter(g => !g.is_teacher);
+  const names = [...new Set(GROUPS.map(g => g.name))];
+  if (GRP && !names.includes(GRP)) GRP = '';
+  $('#grp').innerHTML = `<option value="">Все группы</option>` + names.map(n => `<option ${n === GRP ? 'selected' : ''}>${esc(n)}</option>`).join('');
+}
+async function load(){
+  $('#view').innerHTML = '<div class="panel empty">Загрузка…</div>';
+  const p = {p_grp: GRP || null};
+  const [a, b, q] = await Promise.all([SB.rpc('group_activity', p), SB.rpc('group_best', p), loadQueue()]);
+  if (a.error || b.error){ $('#view').innerHTML = `<div class="panel err">Ошибка загрузки: ${esc((a.error || b.error).message)}</div>`; return; }
+  ACT = a.data || []; BEST = b.data || []; QUEUE = q;
+  $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length;
+  $('#upd').textContent = 'Обновлено ' + new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+  render();
+}
+async function loadQueue(){
+  let q = SB.from('submissions').select('id,kind,ref,title,score,created_at,user_id,file_path,open:data->open,profiles!inner(fio,grp)').is('checked_at', null).order('created_at', {ascending:true}).limit(500);
+  if (GRP) q = q.eq('profiles.grp', GRP);
+  const {data} = await q;
+  return (data || []).filter(s => s.kind === 'report' || (Array.isArray(s.open) && s.open.some(o => (o.a || '').trim())));
+}
+const best = (uid, kind, ref) => BEST.find(r => r.user_id === uid && r.kind === kind && r.ref === ref);
+function rows(){
+  return ACT.map(s => {
+    const tests = BEST.filter(r => r.user_id === s.user_id && r.kind === 'test'), reps = BEST.filter(r => r.user_id === s.user_id && r.kind === 'report');
+    return {...s, tests: tests.length, tavg: tests.length ? tests.reduce((x, r) => x + +r.best, 0) / tests.length : null, reps: reps.length, hours: +s.minutes / 60, lo: s.lectures_opened.length, ld: s.lectures_done.length, pr: s.practices.length};
+  }).sort((a, b) => { const x = a[SORT.k], y = b[SORT.k]; if (typeof x === 'string' || typeof y === 'string') return String(x ?? '').localeCompare(String(y ?? ''), 'ru') * SORT.d; return (x == null ? -1e9 : x) > (y == null ? -1e9 : y) ? SORT.d : (x == null ? -1e9 : x) < (y == null ? -1e9 : y) ? -SORT.d : 0; });
+}
+function sortHead(k, t, cls = ''){ return `<th class="${cls}" data-sort="${k}">${t}${SORT.k === k ? (SORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`; }
+function render(){
+  const v = $('#view');
+  if (VIEW === 'groups') return renderGroups();
+  if (VIEW === 'queue') return renderQueue();
+  if (!ACT.length){ v.innerHTML = `<div class="panel empty">В ${GRP ? 'группе «' + esc(GRP) + '»' : 'базе'} пока нет студентов. Создайте группу во вкладке «Группы и коды» и раздайте студентам код.</div>`; return; }
+  const R = rows(), now = Date.now();
+  const tot = {n: R.length, act7: R.filter(r => r.last_at && now - new Date(r.last_at) < 7 * 864e5).length, tavg: R.filter(r => r.tavg != null), reps: R.reduce((s, r) => s + r.reps, 0)};
+  let h = `<div class="stats"><div class="stat"><b>${tot.n}</b><span class="small">студентов</span></div><div class="stat"><b>${tot.act7}</b><span class="small">активны за 7 дней</span></div>
+    <div class="stat"><b>${tot.tavg.length ? fmt(tot.tavg.reduce((s, r) => s + r.tavg, 0) / tot.tavg.length, 0) + ' %' : '—'}</b><span class="small">средний результат тестов</span></div><div class="stat"><b>${tot.reps}</b><span class="small">отчётов сдано</span></div>
+    <div class="stat"><b>${QUEUE.length}</b><span class="small">ждут проверки</span></div></div>`;
+  if (VIEW === 'over'){
+    h += `<div class="tbl"><table><thead><tr><th class="num">№</th>${sortHead('fio', 'Студент', 'stu')}${GRP ? '' : sortHead('grp', 'Группа')}${sortHead('last_at', 'Последняя активность')}${sortHead('days', 'Дней', 'num')}${sortHead('hours', 'Часов', 'num')}${sortHead('lo', 'Лекции откр.', 'num')}${sortHead('ld', 'Лекции изуч.', 'num')}${sortHead('pr', 'Практики', 'num')}${sortHead('tests', 'Тестов', 'num')}${sortHead('tavg', 'Средн. тест', 'num')}${sortHead('reps', 'Отчётов', 'num')}${sortHead('paste', 'Вставок', 'num')}</tr></thead><tbody>`
+      + R.map((r, i) => { const idle = !r.last_at || now - new Date(r.last_at) > 14 * 864e5;
+        return `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${GRP ? '' : `<td>${esc(r.grp)}</td>`}<td class="${idle ? 'err' : ''}">${dt(r.last_at)}</td><td class="num">${r.days}</td><td class="num">${fmt(r.hours)}</td><td class="num">${r.lo}/10</td><td class="num">${r.ld}/10</td><td class="num">${r.pr}/14</td><td class="num">${r.tests}/26</td><td class="num">${r.tavg == null ? '—' : `<span class="c c${gradeOf(r.tavg)}">${fmt(r.tavg, 0)}</span>`}</td><td class="num">${r.reps}/14</td><td class="num ${r.paste > 5 ? 'err' : ''}">${r.paste}</td></tr>`; }).join('') + '</tbody></table></div>'
+      + '<p class="small">Время считается только активное (вкладка открыта и студент что-то делает). Красным: нет активности 14+ дней; больше 5 попыток вставки. Щелчок по ФИО — карточка студента.</p>';
+  }
+  if (VIEW === 'tests'){
+    h += `<div class="tbl"><table><thead><tr>${sortHead('fio', 'Студент', 'stu')}${TESTIDS.map(id => `<th class="num" title="${esc(TNAME(id))}">${id === 'FT' ? 'Итог Т' : id === 'FP' ? 'Итог П' : id[0] === 'L' ? 'Л' + id.slice(1) : 'ПР' + id.slice(1)}</th>`).join('')}${sortHead('tavg', 'Средн.', 'num')}</tr></thead><tbody>`
+      + R.map(r => `<tr><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${TESTIDS.map(id => { const b = best(r.user_id, 'test', id); return `<td class="num">${b ? `<span class="c c${gradeOf(+b.best)}" data-stu="${r.user_id}" data-ref="${id}" title="${esc(TNAME(id))}: лучший ${b.best} %, попыток ${b.attempts}">${fmt(+b.best, 0)}<span class="att">×${b.attempts}</span></span>` : '<span class="c0">·</span>'}</td>`; }).join('')}<td class="num">${r.tavg == null ? '—' : fmt(r.tavg, 0)}</td></tr>`).join('') + '</tbody></table></div>'
+      + '<p class="small">Лучший результат автопроверки, %; «×N» — число попыток. Цвет — оценка по шкале теста (85/70/55 %). Щелчок по ячейке — все попытки студента.</p>';
+  }
+  if (VIEW === 'reps'){
+    h += `<div class="tbl"><table><thead><tr>${sortHead('fio', 'Студент', 'stu')}${PRN.map((n, i) => `<th class="num" title="ПР-${i + 1}. ${esc(n)}">ПР${i + 1}</th>`).join('')}${sortHead('reps', 'Сдано', 'num')}</tr></thead><tbody>`
+      + R.map(r => `<tr><td class="stu"><button class="linkbtn" data-stu="${r.user_id}">${esc(r.fio)}</button></td>${PRN.map((_, i) => { const b = best(r.user_id, 'report', 'PR' + (i + 1)); return `<td class="num">${b ? `<span class="c ${b.teacher_grade ? 'c' + b.teacher_grade : 'c4'}" data-stu="${r.user_id}" data-ref="PR${i + 1}" title="Сдано ${dt(b.last_at)}, версий: ${b.attempts}">${b.teacher_grade ? b.teacher_grade : '✓'}${b.attempts > 1 ? `<span class="att">×${b.attempts}</span>` : ''}</span>` : '<span class="c0">·</span>'}</td>`; }).join('')}<td class="num">${r.reps}/14</td></tr>`).join('') + '</tbody></table></div>'
+      + '<p class="small">✓ — сдан, не проверен; цифра — ваша оценка последней проверенной версии. Щелчок — открыть отчёт и выставить оценку.</p>';
+  }
+  v.innerHTML = h;
+}
+document.addEventListener('click', e => {
+  const s = e.target.closest('[data-sort]'); if (s){ const k = s.dataset.sort; SORT = {k, d: SORT.k === k ? -SORT.d : (k === 'fio' || k === 'grp' ? 1 : -1)}; render(); return; }
+  const st = e.target.closest('[data-stu]'); if (st){ openStudent(st.dataset.stu, st.dataset.ref || null); return; }
+  const q = e.target.closest('[data-qopen]'); if (q){ openStudent(q.dataset.uid, null, +q.dataset.qopen); return; }
+  const f = e.target.closest('[data-file]'); if (f){ getFile(f.dataset.file, f); return; }
+  const g = e.target.closest('[data-save]'); if (g){ saveGrade(+g.dataset.save, g); return; }
+  if (e.target.closest('[data-dx]')) $('#dlg').close();
+});
+function renderQueue(){
+  const v = $('#view');
+  if (!QUEUE.length){ v.innerHTML = '<div class="panel empty">Все сданные отчёты и творческие задания проверены.</div>'; return; }
+  v.innerHTML = `<div class="tbl"><table><thead><tr><th>Сдано</th><th class="stu">Студент</th><th>Группа</th><th>Работа</th><th class="num">Результат</th><th></th></tr></thead><tbody>${QUEUE.map(s => `<tr><td>${dt(s.created_at)}</td><td class="stu">${esc(s.profiles.fio)}</td><td>${esc(s.profiles.grp)}</td><td>${s.kind === 'report' ? 'Отчёт' : 'Тест (творческое)'}: ${esc(s.title || s.ref)}</td><td class="num">${s.kind === 'report' ? 'заполн. ' + s.score + ' %' : s.score + ' %'}</td><td><button class="btn ghost" data-qopen="${s.id}" data-uid="${s.user_id}">Проверить</button></td></tr>`).join('')}</tbody></table></div>
+    <p class="small">Отчёты и тесты с творческим заданием, которым ещё не выставлена оценка. Старые — сверху.</p>`;
+}
+function renderGroups(){
+  const cnt = n => ACT.filter(a => a.grp === n).length;
+  $('#view').innerHTML = `<div class="panel" style="max-width:860px"><h2>Группы и коды регистрации</h2>
+    <p class="small">Студент при регистрации вводит код группы — так он попадает в нужную группу. После окончания набора код можно закрыть: зарегистрированные студенты продолжат работать.</p>
+    <div class="bar"><input id="g-name" placeholder="Название группы, напр. ИТУ-22" style="min-width:240px"><button class="btn" id="g-add">Создать группу</button><span id="g-msg"></span></div>
+    ${GROUPS.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th>Группа</th><th>Код для студентов</th><th class="num">Студентов</th><th>Регистрация</th><th></th></tr></thead><tbody>${GROUPS.map(g => `<tr><td><b>${esc(g.name)}</b></td><td><code style="font:600 15px var(--f-mono)">${esc(g.code)}</code> <button class="linkbtn" data-copy="${esc(g.code)}">копировать</button></td><td class="num">${GRP && GRP !== g.name ? '—' : cnt(g.name)}</td><td>${g.active ? '<span class="ok">открыта</span>' : '<span class="small">закрыта</span>'}</td><td><button class="linkbtn" data-toggle="${esc(g.code)}">${g.active ? 'закрыть' : 'открыть'}</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="small">Групп пока нет.</p>'}</div>`;
+  $('#g-add').onclick = async () => {
+    const name = $('#g-name').value.trim(); if (!name){ $('#g-msg').textContent = 'Впишите название.'; return; }
+    const base = name.toUpperCase().replace(/[^A-ZА-ЯЁ0-9]+/g, '').slice(0, 8) || 'GR', rnd = Array.from(crypto.getRandomValues(new Uint8Array(3)), b => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32]).join('');
+    const tr = {'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'E','Ж':'J','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'H','Ц':'C','Ч':'CH','Ш':'SH','Щ':'SH','Ы':'Y','Э':'E','Ю':'YU','Я':'YA'};
+    const code = [...base].map(c => tr[c] ?? (/[ЪЬ]/.test(c) ? '' : c)).join('') + '-' + rnd;
+    const {error} = await SB.from('groups').insert({code, name});
+    if (error){ $('#g-msg').className = 'err'; $('#g-msg').textContent = error.message; return; }
+    await loadGroups(); renderGroups(); $('#g-msg').className = 'ok'; $('#g-msg').textContent = `Группа «${name}» создана. Код для студентов: ${code}`;
+  };
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'скопировано'; });
+  document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => { const g = GROUPS.find(x => x.code === b.dataset.toggle); await SB.from('groups').update({active: !g.active}).eq('code', g.code); await loadGroups(); renderGroups(); });
+}
+/* ---------- карточка студента ---------- */
+async function openStudent(uid, ref, focusId){
+  const d = $('#dlg'); const a = ACT.find(x => x.user_id === uid) || {};
+  d.innerHTML = `<button class="linkbtn dx" data-dx>✕ закрыть</button><h2>${esc(a.fio || 'Студент')}</h2><p class="small">Загрузка…</p>`; if (!d.open) d.showModal();
+  const [s, ev] = await Promise.all([
+    SB.from('submissions').select('*').eq('user_id', uid).order('created_at', {ascending:false}).limit(500),
+    SB.from('events').select('kind,ref,val,at').eq('user_id', uid).neq('kind', 'time').order('at', {ascending:false}).limit(60)]);
+  let subs = s.data || []; if (ref) subs = subs.filter(x => x.ref === ref);
+  const lec = n => (a.lectures_done || []).includes(n) ? '<span class="c c5">✓</span>' : (a.lectures_opened || []).includes(n) ? '<span class="c c4">откр.</span>' : '<span class="c0">·</span>';
+  const EVN = {login:'вход', lecture:'открыл лекцию', lecture_done:'отметил лекцию изученной', practice:'открыл практическую работу', test_start:'начал тест', paste:'попытка вставки'};
+  d.innerHTML = `<button class="linkbtn dx" data-dx>✕ закрыть</button><h2>${esc(a.fio || '')}</h2>
+    <p class="small">${esc(a.grp || '')} · ${esc(a.email || '')} · зарегистрирован ${dt(a.registered)} · последняя активность ${dt(a.last_at)}</p>
+    <div class="stats"><div class="stat"><b>${a.days ?? 0}</b><span class="small">дней работы</span></div><div class="stat"><b>${fmt((a.minutes || 0) / 60)}</b><span class="small">часов активно</span></div><div class="stat"><b>${(a.practices || []).length}/14</b><span class="small">практик открыто</span></div><div class="stat"><b>${a.paste ?? 0}</b><span class="small">попыток вставки</span></div></div>
+    <p class="small"><b>Лекции:</b> ${LEC.map((_, i) => `Л${i + 1} ${lec(i + 1)}`).join(' ')}</p>
+    <h2 style="margin-top:14px">${ref ? 'Работы: ' + esc(ref[0] === 'P' && ref[1] === 'R' ? 'отчёт ' + ref : TNAME(ref)) + ' <button class="linkbtn" data-stu="' + uid + '">показать все</button>' : 'Все сданные работы'} (${subs.length})</h2>
+    ${subs.length ? subs.map(x => subHTML(x, focusId)).join('') : '<p class="small">Нет сданных работ.</p>'}
+    <details class="sb"><summary><b>Журнал действий</b> <span class="small">последние ${(ev.data || []).length}</span></summary><table><tbody>${(ev.data || []).map(e => `<tr><td class="small">${dt(e.at)}</td><td>${EVN[e.kind] || esc(e.kind)} ${esc(e.ref || '')}</td></tr>`).join('')}</tbody></table></details>`;
+  const f = (focusId && d.querySelector(`[data-sid="${focusId}"]`)) || (ref && d.querySelector('details.sb[data-sid]')); if (f){ f.open = true; if (focusId) f.scrollIntoView({block:'start'}); }
+}
+function subHTML(x, focusId){
+  const D = x.data || {}, isT = x.kind === 'test';
+  let body = '';
+  if (isT){
+    const lv = D.lv || {};
+    body += `<p class="small">Длительность ${Math.floor((D.sec || 0) / 60)} мин ${(D.sec || 0) % 60} с · баллы ${fmt(D.got, 2)} из ${D.auto ?? '—'} · набрано в творческом задании ${D.typed ?? 0} знаков · попыток вставки ${D.paste ?? 0}</p>`
+      + [1, 2, 3, 4, 5].map(k => lv[k] ? `<div class="lvbar"><span>${BLOOM[k]}</span><span class="track"><span style="width:${Math.round(lv[k][0] / lv[k][1] * 100)}%"></span></span><span class="num">${Math.round(lv[k][0] / lv[k][1] * 100)} %</span></div>` : '').join('');
+    (D.open || []).forEach(o => { body += `<p style="margin:10px 0 0"><b>Творческое задание:</b> ${esc(o.q)}</p><div class="open-a">${esc(o.a || '— нет ответа —')}</div><p class="small">Критерии (0–2 балла каждый): ${(o.crit || []).map(esc).join('; ')}.</p>`; });
+    if (D.items) body += `<details><summary class="small">Ответы по заданиям (${D.items.length})</summary><table><tbody>${D.items.map((it, i) => `<tr><td class="num small">${i + 1}</td><td class="small">${BLOOM[it.lv]}</td><td style="white-space:normal">${esc(it.q)}<br><span class="small">${esc(it.a ?? '')}</span></td><td class="num">${it.t === 'open' ? '—' : `<span class="c ${it.s >= .999 ? 'c5' : it.s > 0 ? 'c3' : 'c2'}">${fmt(it.s, 2)}</span>`}</td></tr>`).join('')}</tbody></table></details>`;
+  } else {
+    body += `<p class="small">Заполнено ${x.score} % обязательных частей · набрано с клавиатуры ${D.typed ?? 0} знаков (в полях ${D.chars ?? 0}) · попыток вставки ${D.paste ?? 0} · вариант ${D.variant ?? '—'} · ${esc(D.method || '')}</p>
+      ${D.chars && D.typed < D.chars * 0.5 ? '<p class="err small">Набрано с клавиатуры заметно меньше, чем текста в полях: возможно, часть текста введена в обход (автозаполнение, другое устройство). Стоит уточнить у студента.</p>' : ''}
+      ${x.file_path ? `<button class="btn ghost" data-file="${esc(x.file_path)}">Скачать отчёт (DOCX)</button>` : ''}`;
+  }
+  const gr = x.teacher_grade;
+  body += `<div class="grade"><label class="small">Оценка <select id="gr-${x.id}"><option value="">—</option>${[5, 4, 3, 2].map(g => `<option ${gr === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label>
+    <textarea id="cm-${x.id}" placeholder="Комментарий студенту (он увидит его в «Мои работы»)">${esc(x.teacher_comment || '')}</textarea>
+    <button class="btn" data-save="${x.id}">Сохранить</button><span class="small" id="sv-${x.id}">${x.checked_at ? 'проверено ' + dt(x.checked_at) : ''}</span></div>`;
+  return `<details class="sb" data-sid="${x.id}" ${x.id === focusId ? 'open' : ''}><summary><b>${isT ? 'Тест' : 'Отчёт'}: ${esc(x.title || x.ref)}</b><span class="small">${dt(x.created_at)}</span>
+    ${isT ? `<span class="c c${gradeOf(+x.score)}">${x.score} %</span>` : ''}${gr ? `<span class="pill">оценка ${gr}</span>` : (isT && !(D.open || []).some(o => (o.a || '').trim()) ? '' : '<span class="pill err">не проверено</span>')}</summary>${body}</details>`;
+}
+async function getFile(path, btn){
+  btn.disabled = true; const {data, error} = await SB.storage.from('works').createSignedUrl(path, 600, {download: path.split('/').pop()}); btn.disabled = false;
+  if (error){ btn.insertAdjacentHTML('afterend', `<span class="err small"> ${esc(error.message)}</span>`); return; }
+  const a = document.createElement('a'); a.href = data.signedUrl; a.download = path.split('/').pop(); document.body.appendChild(a); a.click(); a.remove();
+}
+async function saveGrade(id, btn){
+  const g = $('#gr-' + id).value, c = $('#cm-' + id).value.trim();
+  btn.disabled = true;
+  const {error} = await SB.from('submissions').update({teacher_grade: g ? +g : null, teacher_comment: c || null, checked_at: g ? new Date().toISOString() : null}).eq('id', id);
+  btn.disabled = false; const m = $('#sv-' + id); m.className = error ? 'err small' : 'ok small'; m.textContent = error ? error.message : 'Сохранено';
+  if (!error){ const [b, q] = await Promise.all([SB.rpc('group_best', {p_grp: GRP || null}), loadQueue()]); BEST = b.data || BEST; QUEUE = q; $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length; }
+}
+$('#dlg').addEventListener('close', () => { if (ME) render(); });
+function csv(){
+  const R = rows(), head = ['ФИО', 'Группа', 'Почта', 'Последняя активность', 'Дней', 'Часов', 'Лекции открыто', 'Лекции изучено', 'Практики', 'Попыток вставки', ...TESTIDS.map(TNAME), ...PRN.map((n, i) => `Отчёт ПР-${i + 1}`)];
+  const lines = [head, ...R.map(r => [r.fio, r.grp, r.email, dt(r.last_at), r.days, fmt(r.hours), r.lo, r.ld, r.pr, r.paste,
+    ...TESTIDS.map(id => { const b = best(r.user_id, 'test', id); return b ? b.best : ''; }),
+    ...PRN.map((_, i) => { const b = best(r.user_id, 'report', 'PR' + (i + 1)); return b ? (b.teacher_grade || 'сдан') : ''; })])];
+  const txt = '﻿' + lines.map(l => l.map(v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'})); a.download = `ISU_${GRP || 'vse'}_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+init();
+</script>
+</body>
+</html>
