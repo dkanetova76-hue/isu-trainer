@@ -4996,6 +4996,7 @@ async function cloudInit(){
   if (data && data.session) await cloudLoadMe(data.session.user); else acctRender();
 }
 async function cloudLoadMe(user){
+  if (await syncPull(user.id)) return true;
   const {data, error} = await SB.from('profiles').select('id,fio,grp,role,email').eq('id', user.id).single();
   if (error || !data){ ME = null; acctRender(); return false; }
   ME = data; REP.common.fio = ME.fio; REP.common.group = ME.grp; saveRep(); lockFields(true); acctRender(); cloudFlush();
@@ -5124,7 +5125,7 @@ async function loadMine(){
 }
 document.addEventListener('click', async e => {
   const a = e.target.closest('[data-auth]'); if (a){ e.preventDefault(); const m = a.dataset.auth;
-    if (m === 'logout'){ timeFlush(); await cloudFlush(); await SB.auth.signOut(); ME = null; lockFields(false); acctRender(); return; }
+    if (m === 'logout'){ timeFlush(); await cloudFlush(); const synced = await syncPush(true); await SB.auth.signOut(); ME = null; lockFields(false); acctRender(); if (synced) syncWipe(true); return; }
     authOpen(m); return; }
   const b = e.target.closest('[data-au]'); if (!b) return; e.preventDefault(); const v = id => ($('#' + id) || {}).value || '';
   b.disabled = true;
@@ -5149,6 +5150,112 @@ document.addEventListener('click', async e => {
   b.disabled = false;
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#auth-dlg input')){ const b = $('#auth-dlg [data-au]'); if (b){ e.preventDefault(); b.click(); } } });
+/* --- синхронизация черновиков: отчёты, журналы опытов и настройки практических хранятся в учётной записи,
+       поэтому работа не пропадает при перезагрузке, на другом компьютере и в другом браузере --- */
+const SYNC_SKIP = new Set(['isu-cloud-q', 'isu-tab', 'isu-lang', 'isu-sync-ts', 'isu-sync-uid', 'isu-last-pr']);
+const isSyncKey = k => /^isu-/.test(k) && !SYNC_SKIP.has(k);
+const SY = {ts: store.get('isu-sync-ts', {}), val: new Map(), dirty: new Set(), sent: {}, t: null, busy: false, ready: false, off: false};
+const sRaw = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+store.set = function(k, v){
+  sRaw(k, v); if (!isSyncKey(k)) return;
+  SY.val.set(k, v); SY.ts[k] = Date.now(); sRaw('isu-sync-ts', SY.ts); SY.dirty.add(k); syncSoon();
+};
+const syncSoon = () => { clearTimeout(SY.t); SY.t = setTimeout(syncPush, 4000); };
+const IMGK = 'isu-rep-img:';
+function repSplit(rep){
+  const r = JSON.parse(JSON.stringify(rep || {})), imgs = {};
+  Object.keys(r).forEach(w => { const d = r[w]; if (!d || typeof d !== 'object') return;
+    Object.keys(d).forEach(f => { const v = d[f]; if (typeof v === 'string' && v.startsWith('data:')){ imgs[IMGK + w + ':' + f] = v; d[f] = '@img'; } }); });
+  return [r, imgs];
+}
+function repJoin(r, imgs){
+  Object.keys(r || {}).forEach(w => { const d = r[w]; if (!d || typeof d !== 'object') return;
+    Object.keys(d).forEach(f => { if (d[f] === '@img'){ const v = imgs[IMGK + w + ':' + f]; if (v) d[f] = v; else delete d[f]; } }); });
+  return r;
+}
+function syncLocalKeys(){ const ks = []; try { for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (isSyncKey(k)) ks.push(k); } } catch(e){} return ks; }
+function syncWipe(reload){
+  syncLocalKeys().forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
+  try { localStorage.removeItem('isu-sync-ts'); localStorage.removeItem('isu-sync-uid'); localStorage.removeItem('isu-last-pr'); } catch(e){}
+  SY.ts = {}; SY.val.clear(); SY.dirty.clear();
+  if (reload) location.reload();
+}
+/* после входа: свежие данные из облака — на устройство, более новые локальные — в облако */
+async function syncPull(uid){
+  if (!SB) return false;
+  const prev = store.get('isu-sync-uid', null);
+  let changed = false;
+  if (prev && prev !== uid){ syncWipe(false); changed = true; }
+  sRaw('isu-sync-uid', uid);
+  const {data, error} = await SB.from('drafts').select('key,data,updated_at');
+  if (error){ SY.off = true; SY.ready = true; if (changed) location.reload(); return changed; }
+  const imgs = {}, seen = new Set();
+  data.forEach(r => { if (r.key.startsWith(IMGK)) imgs[r.key] = r.data; });
+  data.forEach(r => {
+    if (r.key.startsWith(IMGK)){ SY.sent[r.key] = String(r.data).length + String(r.data).slice(-40); return; }
+    seen.add(r.key);
+    const ct = Date.parse(r.updated_at) || 0, lt = SY.ts[r.key] || 0;
+    if (ct > lt){ sRaw(r.key, r.key === 'isu-rep' ? repJoin(r.data, imgs) : r.data); SY.ts[r.key] = ct; changed = true; }
+    else if (lt > ct) SY.dirty.add(r.key);
+  });
+  syncLocalKeys().forEach(k => { if (!seen.has(k)){ if (!SY.ts[k]) SY.ts[k] = Date.now(); SY.dirty.add(k); } });
+  sRaw('isu-sync-ts', SY.ts); SY.ready = true;
+  if (changed){
+    let last = 0; try { last = +sessionStorage.getItem('isu-sync-reload') || 0; sessionStorage.setItem('isu-sync-reload', Date.now()); } catch(e){}
+    if (Date.now() - last > 15000){ location.reload(); return true; }
+  }
+  return false;
+}
+async function syncPush(now){
+  if (now) clearTimeout(SY.t);
+  if (!SB || !ME || !SY.ready || SY.off) return false;
+  if (SY.busy){ syncSoon(); return false; }
+  if (!SY.dirty.size) return true;
+  SY.busy = true; const keys = [...SY.dirty]; SY.dirty.clear(); let ok = true;
+  try {
+    const rows = [], big = [];
+    keys.forEach(k => {
+      let v = SY.val.has(k) ? SY.val.get(k) : store.get(k, null); const at = new Date(SY.ts[k] || Date.now()).toISOString();
+      if (k === 'isu-rep' && v){ const [r, im] = repSplit(v); v = r;
+        Object.entries(im).forEach(([ik, iv]) => { const sig = iv.length + iv.slice(-40); if (SY.sent[ik] !== sig) big.push({row:{user_id:ME.id, key:ik, data:iv, updated_at:at}, sig}); }); }
+      rows.push({user_id:ME.id, key:k, data:v, updated_at:at});
+    });
+    for (const b of big){ const {error} = await SB.from('drafts').upsert(b.row, {onConflict:'user_id,key'}); if (error) throw error; SY.sent[b.row.key] = b.sig; }
+    if (rows.length){ const {error} = await SB.from('drafts').upsert(rows, {onConflict:'user_id,key'}); if (error) throw error; }
+  } catch(e){ ok = false; keys.forEach(k => SY.dirty.add(k)); if (/drafts|relation|schema cache/i.test((e && e.message) || '')) SY.off = true; }
+  SY.busy = false; return ok;
+}
+setInterval(() => { if (SY.dirty.size) syncPush(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncPush(true); });
+addEventListener('online', () => syncPush());
+
+/* --- настройки практических работ (ползунки, пороги, переключатели) сохраняются и восстанавливаются --- */
+const PRSET = store.get('isu-prset', {}); const prDone = new Set(); let prBusy = false; const prT = {};
+function prSec(el){ const s = el && el.closest && el.closest('section[id^="pr"]'); return s && /^pr\d+$/.test(s.id) ? s : null; }
+function prCapture(sec){
+  if (prBusy || !prDone.has(sec.id)) return;
+  const o = {i:{}, s:{}};
+  sec.querySelectorAll('input[id],select[id],textarea[id]').forEach(el => { if (el.type === 'file' || el.type === 'button') return; o.i[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value; });
+  sec.querySelectorAll('button[aria-pressed="true"][data-v]').forEach(b => { const c = b.parentElement; if (c && c.id) o.s[c.id] = b.dataset.v; });
+  PRSET[sec.id] = o; store.set('isu-prset', PRSET);
+}
+const prCaptureSoon = sec => { clearTimeout(prT[sec.id]); prT[sec.id] = setTimeout(() => prCapture(sec), 500); };
+['input', 'change', 'click'].forEach(ev => document.addEventListener(ev, e => { const s = prSec(e.target); if (s) prCaptureSoon(s); }));
+function prRestore(sec){
+  const o = PRSET[sec.id]; prDone.add(sec.id); if (!o) return;
+  prBusy = true;
+  try {
+    Object.entries(o.s || {}).forEach(([cid, v]) => { const c = document.getElementById(cid); if (!c || !sec.contains(c)) return;
+      const b = [...c.querySelectorAll('button[data-v]')].find(x => x.dataset.v === String(v)); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    Object.entries(o.i || {}).forEach(([id, v]) => { const el = document.getElementById(id); if (!el || !sec.contains(el)) return;
+      if (el.type === 'checkbox' || el.type === 'radio'){ if (el.checked === !!v) return; el.checked = !!v; }
+      else { if (el.value === String(v)) return; el.value = v; if (el.value !== String(v)) return; }
+      el.dispatchEvent(new Event('input', {bubbles:true})); el.dispatchEvent(new Event('change', {bubbles:true})); });
+  } catch(e){}
+  prBusy = false;
+}
+{ const _st2 = showTab; showTab = function(id){ _st2(id); if (/^pr\d+$/.test(id) && !prDone.has(id)){ const sec = document.getElementById(id); if (sec) prRestore(sec); } }; }
+
 cloudInit();
 
 const start = TABIDS.includes(location.hash.slice(1)) ? location.hash.slice(1) : store.get('isu-tab', 'home');
