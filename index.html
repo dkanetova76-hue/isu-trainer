@@ -1261,7 +1261,9 @@ const $ = s => document.querySelector(s);
 const LIGHT = {'--muted':'#5b6876','--grid':'#e3e7ec','--open':'#c2621a','--closed':'#1f5fbf','--sla':'#b4322e','--bad':'#b4322e'};
 let EXPORTING = false;
 const css = v => EXPORTING ? LIGHT[v] : getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const store = { get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+const store = { get(k, d){ try{ const v = localStorage.getItem(k); if (v == null) return d; const x = JSON.parse(v); if (x == null) return d;
+  if (Array.isArray(d) && !Array.isArray(x)) return d; if (d && typeof d === 'object' && !Array.isArray(d) && (typeof x !== 'object' || Array.isArray(x))) return d; return x; }catch(e){ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+const isImg = v => typeof v === 'string' && v.startsWith('data:');
 const fmt = (v, d=0) => v == null || Number.isNaN(v) ? '—' : v.toLocaleString('ru-RU', {minimumFractionDigits:d, maximumFractionDigits:d});
 
 /* ---------- Tabs ---------- */
@@ -1595,7 +1597,7 @@ function muF(t, x){
   return Math.max(0, Math.min(1, left, right));
 }
 const DEF5 = () => [{n:'low', type:'trap', p:[0,0,20,40]}, {n:'medium', type:'tri', p:[30,50,70]}, {n:'high', type:'trap', p:[60,80,100,100]}];
-const S5 = { terms: store.get('isu-pr5', null) || DEF5() };
+const S5 = { terms: store.get('isu-pr5', []).length ? store.get('isu-pr5', []) : DEF5() };
 const PCOUNT = {tri:3, trap:4, gauss:2}, PNAMES = {tri:['a','b','c'], trap:['a','b','c','d'], gauss:['c','σ']};
 const TERMCOL = ['--closed','--open','--good','--bad','--warn'];
 function renderTerms5(){
@@ -1800,7 +1802,7 @@ const WORKS = {
 };
 
 let REP = store.get('isu-rep', {common:{teacher:'Канетова Д.Э., к.ф.-м.н., доцент', method:'Тренажёр', variant:'1'}, w1:{}, w2:{}, w3:{}});
-let WORK = String(store.get('isu-rep-work', '1'));
+let WORK = String(store.get('isu-rep-work', '1')); if (!WORKS[WORK]) WORK = '1';
 for (const k of [1,2,3,4,5,6,7,8,9,10,11,12,13,14]) REP['w' + k] = REP['w' + k] || {};
 const saveRep = () => store.set('isu-rep', REP);
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1828,7 +1830,7 @@ function renderForm(){
       }
       h += `</tbody></table></div>${it.fixed ? '' : `<button class="linkbtn" data-addrow="${it.id}">+ добавить строку</button>`}</div>`;
     }
-    if (it.type === 'image') h += `<div class="rf"><label>${it.label}</label>${tipHTML(hintFor(it.id))}<div class="imgdrop">${d[it.id] ? `<img src="${d[it.id]}" alt="Схема">` : '<span class="small">Рисунок не загружен</span>'}<input type="file" id="f-${it.id}" accept="image/*" data-img="${it.id}">${d[it.id] ? `<button class="linkbtn" data-delimg="${it.id}">удалить</button>` : ''}</div></div>`;
+    if (it.type === 'image') h += `<div class="rf"><label>${it.label}</label>${tipHTML(hintFor(it.id))}<div class="imgdrop">${isImg(d[it.id]) ? `<img src="${d[it.id]}" alt="Схема">` : '<span class="small">Рисунок не загружен</span>'}<input type="file" id="f-${it.id}" accept="image/*" data-img="${it.id}">${d[it.id] ? `<button class="linkbtn" data-delimg="${it.id}">удалить</button>` : ''}</div></div>`;
     if (it.type === 'auto') h += `<div class="rf"><label>${it.label}</label><div class="auto" id="auto-${it.id}"></div></div>`;
   });
   h += '</div>';
@@ -1903,7 +1905,7 @@ function checks(){
       if (it.fixed) need((d[it.id]||[]).filter(r => r && (r[1]||'').trim()).length >= it.fixed.length, it.label + ': заполните все строки');
       else need(rows.length >= it.min, `${it.label}: заполнено ${rows.length} из ${it.min}`);
     }
-    if (it.type === 'image') need(d[it.id] || filled(d.placement), 'Схема: загрузите рисунок');
+    if (it.type === 'image') need(isImg(d[it.id]) || filled(d.placement), 'Схема: загрузите рисунок');
     if (it.id === 'log1') need(log.length >= 4, `Журнал экспериментов: ${log.length} из 4 строк (вкладка ПР-1)`);
     if (it.id === 'cons4') need(S4.consult && S4.consult.done, 'Проведите консультацию до конца (вкладка ПР-4, обратный вывод)');
   });
@@ -2010,7 +2012,7 @@ function buildReport(){
       const rows = it.fixed ? it.fixed.map((f,r) => [f, (val[r]||[])[1] || '']) : val.filter(r => r && r.some(x => (x||'').trim())).map(r => it.cols.map((_,ci) => r[ci] || ''));
       L(it.label); if (rows.length) B.push(Tb(it.cols, rows)); else B.push(Pp('не заполнено', {i:true}));
     }
-    if (it.type === 'image'){ L(it.label); if (d[it.id]) { const wh = d[it.id + '_wh'] || [1200, 800]; B.push({t:'img', src:d[it.id], w:wh[0], h:wh[1], cap:'Рисунок. Схема замкнутого контура интеллектуальной системы управления'}); } else B.push(Pp('рисунок не приложен', {i:true})); }
+    if (it.type === 'image'){ L(it.label); if (isImg(d[it.id])) { const wh = d[it.id + '_wh'] || [1200, 800]; B.push({t:'img', src:d[it.id], w:wh[0], h:wh[1], cap:'Рисунок. Схема замкнутого контура интеллектуальной системы управления'}); } else B.push(Pp('рисунок не приложен', {i:true})); }
     if (it.type === 'auto'){ L(it.label.replace(/\s*\(с вкладки.*$/,'')); B.push(...auto(it.id)); }
   });
   H('Выводы'); text(d.concl);
@@ -4510,7 +4512,7 @@ function renderHome(){
   const d = bkDone(), nd = Object.keys(d).filter(k => +k >= 1 && +k <= 10).length;
   $('#course-map tbody').innerHTML = BOOK.lectures.map(l => `<tr><td class="num">${l.n}</td><td><button class="lec-a" data-lec="${l.n}">${l.title}</button></td><td>${(LECPR[l.n] || []).map(k => `<button class="pr-a" data-pr="${k}">ПР-${k}</button>`).join(', ')}</td><td>${d[l.n] ? '<span class="pill ok">изучена</span>' : '<span class="small">—</span>'}</td><td>${tRes()['L' + l.n] ? `<button class="ts-pill g${tGrade(tRes()['L' + l.n].best)[0]}" data-tsrun="L${l.n}" title="Лучший результат">${tRes()['L' + l.n].best} %</button>` : `<button class="lec-a" data-tsrun="L${l.n}" style="font-size:14px">пройти</button>`}</td></tr>`).join('');
   const started = Array.from({length:14}, (_, i) => i + 1).filter(k => ACT['pr' + k] && Object.keys(ACT['pr' + k]).length).length;
-  const reps = Array.from({length:14}, (_, i) => i + 1).filter(k => { const w = REP['w' + k] || {}; return Object.entries(w).some(([key, v]) => !key.startsWith('_') && typeof v === 'string' && v.trim() && !v.startsWith('data:')); }).length;
+  const reps = Array.from({length:14}, (_, i) => i + 1).filter(k => { const w = REP['w' + k] || {}; return Object.entries(w).some(([key, v]) => !key.startsWith('_') && typeof v === 'string' && v.trim() && !v.startsWith('data:') && v !== '@img'); }).length;
   $('#hp-th').textContent = `Изучено лекций: ${nd} из 10`; $('#hp-pr').textContent = `Начато работ: ${started} из 14`; $('#hp-rep').textContent = `Начато отчётов: ${reps} из 14`; $('#hp-ts').textContent = `Пройдено тестов: ${Object.keys(tRes()).length} из 26`;
 }
 document.addEventListener('click', e => {
@@ -5155,7 +5157,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.cl
 const SYNC_SKIP = new Set(['isu-cloud-q', 'isu-tab', 'isu-lang', 'isu-sync-ts', 'isu-sync-uid', 'isu-last-pr']);
 const isSyncKey = k => /^isu-/.test(k) && !SYNC_SKIP.has(k);
 const SY = {ts: store.get('isu-sync-ts', {}), val: new Map(), dirty: new Set(), sent: {}, t: null, busy: false, ready: false, off: false};
-const sRaw = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+const sRaw = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){
+  if (k === 'isu-rep' && v && typeof v === 'object'){ try { localStorage.setItem(k, JSON.stringify(repSplit(v)[0])); return true; } catch(e2){} } return false; } };
 store.set = function(k, v){
   sRaw(k, v); if (!isSyncKey(k)) return;
   SY.val.set(k, v); SY.ts[k] = Date.now(); sRaw('isu-sync-ts', SY.ts); SY.dirty.add(k); syncSoon();
@@ -5193,11 +5196,13 @@ async function syncPull(uid){
   data.forEach(r => { if (r.key.startsWith(IMGK)) imgs[r.key] = r.data; });
   data.forEach(r => {
     if (r.key.startsWith(IMGK)){ SY.sent[r.key] = String(r.data).length + String(r.data).slice(-40); return; }
+    if (r.data == null) return;
     seen.add(r.key);
-    const ct = Date.parse(r.updated_at) || 0, lt = SY.ts[r.key] || 0;
-    if (ct > lt){ sRaw(r.key, r.key === 'isu-rep' ? repJoin(r.data, imgs) : r.data); SY.ts[r.key] = ct; changed = true; }
+    const ct = Date.parse(r.updated_at) || 0, lt = SY.ts[r.key] || 0, has = (() => { try { return localStorage.getItem(r.key) != null; } catch(e){ return false; } })();
+    if (ct > lt || !has){ sRaw(r.key, r.key === 'isu-rep' ? repJoin(r.data, imgs) : r.data); SY.ts[r.key] = ct; changed = true; }
     else if (lt > ct) SY.dirty.add(r.key);
   });
+  try { if (REP && typeof REP === 'object' && JSON.stringify(REP).includes('"@img"')){ repJoin(REP, imgs); if (typeof renderForm === 'function') renderForm(); } } catch(e){}
   syncLocalKeys().forEach(k => { if (!seen.has(k)){ if (!SY.ts[k]) SY.ts[k] = Date.now(); SY.dirty.add(k); } });
   sRaw('isu-sync-ts', SY.ts); SY.ready = true;
   if (changed){
@@ -5218,6 +5223,7 @@ async function syncPush(now){
       let v = SY.val.has(k) ? SY.val.get(k) : store.get(k, null); const at = new Date(SY.ts[k] || Date.now()).toISOString();
       if (k === 'isu-rep' && v){ const [r, im] = repSplit(v); v = r;
         Object.entries(im).forEach(([ik, iv]) => { const sig = iv.length + iv.slice(-40); if (SY.sent[ik] !== sig) big.push({row:{user_id:ME.id, key:ik, data:iv, updated_at:at}, sig}); }); }
+      if (v == null) return;
       rows.push({user_id:ME.id, key:k, data:v, updated_at:at});
     });
     for (const b of big){ const {error} = await SB.from('drafts').upsert(b.row, {onConflict:'user_id,key'}); if (error) throw error; SY.sent[b.row.key] = b.sig; }
