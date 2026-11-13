@@ -71,6 +71,18 @@ dialog::backdrop{background:rgba(10,20,40,.45)}
 .aibox{background:var(--accent-soft);border-radius:6px;padding:8px 12px;margin:10px 0 0;font-size:13.5px}
 .aibox ol{margin:4px 0;padding-left:20px}.aibox .warn{color:var(--warn);font-weight:600}
 .aiwarn{color:var(--warn);font-weight:600}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:16px;margin-bottom:16px}.dgrid .panel{margin:0}
+@media (max-width:520px){.dgrid{grid-template-columns:1fr}}
+.hb{display:grid;grid-template-columns:minmax(90px,210px) minmax(0,1fr) minmax(70px,auto);gap:8px;align-items:center;font-size:13px;margin:5px 0}
+.hb .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb .val{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}.hb .val b{color:var(--ink)}
+.hb .tr{height:14px;background:var(--grid);border-radius:0 4px 4px 0;position:relative}.hb .tr span{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+.hb .tr i{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1px dashed var(--muted)}
+.hb.g5 .tr span{background:var(--good)}.hb.g4 .tr span{background:var(--accent)}.hb.g3 .tr span{background:var(--warn)}.hb.g2 .tr span{background:var(--bad)}.hb.g0 .tr span{background:var(--muted)}
+.wk{display:flex;align-items:flex-end;gap:2px;height:150px;border-bottom:1px solid var(--line);padding-top:16px}
+.wk div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font:11px var(--f-mono);color:var(--muted)}
+.wk div span{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0;min-height:1px}.wk div:hover span{opacity:.75}
+.wkx{display:flex;gap:2px}.wkx span{flex:1;text-align:center;font:10.5px var(--f-mono);color:var(--muted);padding-top:3px}
+.risk{display:inline-block;font:600 11px var(--f-body);border-radius:999px;padding:1px 7px;margin:1px 2px;background:var(--warn-soft);color:var(--warn)}.risk.hi{background:var(--bad-soft);color:var(--bad)}
 @media (max-width:700px){h1{font-size:23px}.tbl{max-height:none}}
 </style>
 <script src="cloud-config.js"></script>
@@ -165,7 +177,7 @@ async function afterLogin(user){
   $('#app').innerHTML = `<div class="bar">
       <div class="seg" id="courses" aria-label="Дисциплина">${Object.entries(COURSES).map(([k, c]) => `<button data-c="${k}" aria-pressed="${k === COURSE}" title="${esc(c.name)}">${c.short}</button>`).join('')}</div>
       <select id="grp" aria-label="Группа"></select>
-      <div class="seg" id="views">${[['over','Обзор'],['tests','Тесты'],['reps','Отчёты'],['queue','На проверку'],['groups','Группы и коды']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${k === VIEW}">${t}${k === 'queue' ? '<span class="cnt" id="qcnt" hidden></span>' : ''}</button>`).join('')}</div>
+      <div class="seg" id="views">${[['over','Обзор'],['dash','Успеваемость'],['tests','Тесты'],['reps','Отчёты'],['queue','На проверку'],['groups','Группы и коды']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${k === VIEW}">${t}${k === 'queue' ? '<span class="cnt" id="qcnt" hidden></span>' : ''}</button>`).join('')}</div>
       <button class="btn ghost" id="reload">Обновить</button><button class="btn ghost" id="csv">Скачать CSV</button><span class="small" id="upd"></span></div>
     <div id="view"></div>`;
   $('#views').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; VIEW = b.dataset.v; localStorage.setItem('isu-t-view', VIEW); document.querySelectorAll('#views button').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
@@ -217,6 +229,7 @@ function render(){
   const v = $('#view');
   if (VIEW === 'groups') return renderGroups();
   if (VIEW === 'queue') return renderQueue();
+  if (VIEW === 'dash') return renderDash();
   if (!ACT.length){ v.innerHTML = `<div class="panel empty">В ${GRP ? 'группе «' + esc(GRP) + '»' : 'базе'} пока нет студентов. Создайте группу во вкладке «Группы и коды» и раздайте студентам код.</div>`; return; }
   const R = rows(), now = Date.now();
   const tot = {n: R.length, act7: R.filter(r => r.last_at && now - new Date(r.last_at) < 7 * 864e5).length, tavg: R.filter(r => r.tavg != null), reps: R.reduce((s, r) => s + r.reps, 0)};
@@ -287,6 +300,71 @@ function renderGroups(){
   };
   document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'скопировано'; });
   document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => { const g = GROUPS.find(x => x.code === b.dataset.toggle); await SB.from('groups').update({active: !g.active}).eq('code', g.code); await loadGroups(); renderGroups(); });
+}
+/* ---------- дашборд успеваемости ---------- */
+const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+function perf(){
+  const R = rows(), now = Date.now(), NT = C().TESTS.length, NR = C().REPS.length, rids = new Set(C().REPS.map(x => x[0]));
+  const P = R.map(r => {
+    const rg = BEST.filter(b => b.user_id === r.user_id && b.kind === 'report' && rids.has(b.ref) && b.teacher_grade).map(b => +b.teacher_grade);
+    const parts = [r.tavg != null ? gradeOf(r.tavg) : null, rg.length ? avg(rg) : null].filter(x => x != null);
+    const cur = parts.length ? avg(parts) : null, prog = (r.tests + r.reps) / (NT + NR) * 100, idle = r.last_at ? Math.floor((now - new Date(r.last_at)) / 864e5) : null;
+    return {...r, rg: rg.length ? avg(rg) : null, rgn: rg.length, cur, cg: cur == null ? 0 : Math.round(cur + 1e-9) < 2 ? 2 : Math.min(5, Math.round(cur + 1e-9)), prog, idle};
+  });
+  const med = (a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; })(P.map(p => p.prog));
+  P.forEach(p => { const k = [];
+    if (!p.tests && !p.reps) k.push(['не приступал(а)', 1]);
+    if (p.idle == null || p.idle >= 14) k.push([p.idle == null ? 'не входил(а)' : `нет активности ${p.idle} дн.`, 1]);
+    if (p.tavg != null && p.tavg < 55) k.push([`тесты ${fmt(p.tavg, 0)} %`, 1]);
+    if (p.rg != null && p.rg < 3) k.push([`отчёты ${fmt(p.rg, 1)}`, 1]);
+    if ((p.tests || p.reps) && med > 0 && p.prog < med / 2) k.push(['отстаёт от группы', 0]);
+    if (p.paste > 5) k.push([`вставок ${p.paste}`, 0]);
+    p.risk = k; });
+  return {P, med};
+}
+const hb = (lbl, pct, val, cls = '', tip = '', mark) => `<div class="hb ${cls}" title="${esc(tip)}"><span class="lbl">${lbl}</span><span class="tr">${mark != null ? `<i style="left:${mark}%"></i>` : ''}<span style="width:${Math.max(0, Math.min(100, pct))}%"></span></span><span class="val">${val}</span></div>`;
+let DSORT = {k: 'cur', d: -1};
+function renderDash(){
+  const v = $('#view');
+  if (!ACT.length){ v.innerHTML = `<div class="panel empty">В ${GRP ? 'группе «' + esc(GRP) + '»' : 'базе'} пока нет студентов.</div>`; return; }
+  const {P, med} = perf(), N = P.length, uids = new Set(P.map(p => p.user_id));
+  const withCur = P.filter(p => p.cur != null), risk = P.filter(p => p.risk.some(x => x[1])), riskAll = P.filter(p => p.risk.length);
+  const repsAll = BEST.filter(b => b.kind === 'report' && uids.has(b.user_id) && C().REPS.some(x => x[0] === b.ref)), repsChk = repsAll.filter(b => b.teacher_grade);
+  let h = `<div class="stats"><div class="stat"><b>${N}</b><span class="small">студентов</span></div>
+    <div class="stat"><b>${withCur.length ? fmt(avg(withCur.map(p => p.cur)), 1) : '—'}</b><span class="small">средняя текущая оценка (${withCur.length} из ${N} с оценкой)</span></div>
+    <div class="stat"><b>${fmt(avg(P.map(p => p.prog)), 0)} %</b><span class="small">средний прогресс по курсу</span></div>
+    <div class="stat"><b>${repsChk.length} / ${repsAll.length}</b><span class="small">отчётов проверено</span></div>
+    <div class="stat"><b class="${risk.length ? 'err' : ''}">${risk.length}</b><span class="small">в зоне риска</span></div></div>`;
+  const dist = [5, 4, 3, 2].map(g => [g, P.filter(p => p.cg === g).length]).concat([[0, P.filter(p => !p.cg).length]]), dmax = Math.max(1, ...dist.map(d => d[1]));
+  h += `<div class="dgrid"><div class="panel"><h2>Текущие оценки</h2>${dist.map(([g, n]) => hb(g ? `<b>${g}</b> — ${({5:'отлично',4:'хорошо',3:'удовл.',2:'неуд.'})[g]}` : 'нет оценки', n / dmax * 100, `<b>${n}</b> · ${fmt(n / N * 100, 0)} %`, 'g' + g, `${n} студентов`)).join('')}
+      <p class="small">Текущая оценка — среднее из оценки за тесты (по шкале 85 / 70 / 55 %) и средней вашей оценки за проверенные отчёты. «Нет оценки» — не сдано ни одного теста и нет проверенных отчётов.</p></div>
+    <div class="panel"><h2>Сдано работ по неделям</h2><div id="wk"><p class="small">Загрузка…</p></div></div></div>`;
+  const T = C().TESTS.map(t => { const b = BEST.filter(x => x.kind === 'test' && x.ref === t[0] && uids.has(x.user_id)); return {t, n: b.length, a: avg(b.map(x => +x.best))}; });
+  const Rp = C().REPS.map(t => { const b = BEST.filter(x => x.kind === 'report' && x.ref === t[0] && uids.has(x.user_id)), g = b.filter(x => x.teacher_grade).map(x => +x.teacher_grade); return {t, n: b.length, c: g.length, g: avg(g)}; });
+  h += `<div class="dgrid"><div class="panel"><h2>Тесты: средний результат</h2>${T.map(o => hb(esc(o.t[2]) + ' <span class="small">' + esc(o.t[1].replace(/^[^.]*\.\s*/, '').slice(0, 24)) + '</span>', o.a || 0, o.n ? `<b>${fmt(o.a, 0)} %</b> · ${o.n}/${N}` : `— · 0/${N}`, o.n ? 'g' + gradeOf(o.a) : 'g0', `${o.t[1]}: средний лучший результат ${o.n ? fmt(o.a, 0) + ' %' : '—'}, прошли ${o.n} из ${N}`, 85)).join('')}
+      <p class="small">Полоса — средний лучший результат прошедших тест; цвет — оценка по шкале; пунктир — 85 %. Справа — сколько студентов прошли.</p></div>
+    <div class="panel"><h2>${COURSE === 'isu' ? 'Отчёты по практикам' : 'Практические и самостоятельные'}: сдача</h2>${Rp.map(o => hb(esc(o.t[2]) + ' <span class="small">' + esc(o.t[1].replace(/^[^.]*\.\s*/, '').slice(0, 24)) + '</span>', o.n / N * 100, `<b>${o.n}</b>/${N}${o.c ? ` · ср. ${fmt(o.g, 1)}` : ''}`, '', `${o.t[1]}: сдали ${o.n} из ${N}, проверено ${o.c}${o.c ? ', средняя оценка ' + fmt(o.g, 1) : ''}`)).join('')}
+      <p class="small">Полоса — доля группы, сдавшая работу; «ср.» — средняя ваша оценка проверенных.</p></div></div>`;
+  h += `<div class="panel"><h2>Зона риска (${riskAll.length})</h2>${riskAll.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th class="stu">Студент</th>${GRP ? '' : '<th>Группа</th>'}<th>Причины</th><th class="num">Прогресс</th><th class="num">Текущая</th><th>Последняя активность</th></tr></thead><tbody>${riskAll.sort((a, b) => b.risk.filter(x => x[1]).length - a.risk.filter(x => x[1]).length || a.prog - b.prog).map(p => `<tr><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td style="white-space:normal">${p.risk.map(x => `<span class="risk ${x[1] ? 'hi' : ''}">${esc(x[0])}</span>`).join('')}</td><td class="num">${fmt(p.prog, 0)} %</td><td class="num">${p.cur == null ? '—' : `<span class="c c${p.cg}">${fmt(p.cur, 1)}</span>`}</td><td>${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="small">Никого: все работают.</p>'}
+    <p class="small">Красным — серьёзные причины (не приступал, нет активности 14+ дней, тесты ниже 55 %, отчёты ниже 3); жёлтым — сигналы (прогресс меньше половины медианы группы — ${fmt(med, 0)} %; больше 5 попыток вставки).</p></div>`;
+  const cols = [['fio', 'Студент', 'stu'], ...(GRP ? [] : [['grp', 'Группа', '']]), ['cur', 'Текущая', 'num'], ['tavg', 'Тесты, %', 'num'], ['tests', 'Тестов', 'num'], ['rg', 'Отчёты, ср.', 'num'], ['reps', 'Отчётов', 'num'], ['prog', 'Прогресс', 'num'], ['hours', 'Часов', 'num'], ['last_at', 'Активность', '']];
+  const S = [...P].sort((a, b) => { const x = a[DSORT.k], y = b[DSORT.k]; if (typeof x === 'string' || typeof y === 'string') return String(x ?? '').localeCompare(String(y ?? ''), 'ru') * DSORT.d; return ((x ?? -1e9) - (y ?? -1e9)) * DSORT.d; });
+  h += `<div class="panel"><h2>Рейтинг студентов</h2><div class="tbl" style="max-height:none"><table><thead><tr><th class="num">№</th>${cols.map(([k, t, c]) => `<th class="${c}" data-dsort="${k}">${t}${DSORT.k === k ? (DSORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${S.map((p, i) => `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td class="num">${p.cur == null ? '—' : `<span class="c c${p.cg}">${fmt(p.cur, 1)}</span>`}</td><td class="num">${p.tavg == null ? '—' : fmt(p.tavg, 0)}</td><td class="num">${p.tests}/${C().TESTS.length}</td><td class="num">${p.rg == null ? '—' : fmt(p.rg, 1)}</td><td class="num">${p.reps}/${C().REPS.length}</td><td class="num">${fmt(p.prog, 0)} %</td><td class="num">${fmt(p.hours)}</td><td class="${p.idle == null || p.idle >= 14 ? 'err' : ''}">${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="small">Прогресс — доля сданных тестов и отчётов от всех в курсе. Щелчок по заголовку — сортировка, по ФИО — карточка студента. Таблицу целиком можно скачать кнопкой «Скачать CSV».</p></div>`;
+  v.innerHTML = h;
+  v.querySelectorAll('[data-dsort]').forEach(th => th.onclick = () => { const k = th.dataset.dsort; DSORT = {k, d: DSORT.k === k ? -DSORT.d : (k === 'fio' || k === 'grp' ? 1 : -1)}; renderDash(); });
+  weeks(uids);
+}
+async function weeks(uids){
+  const W = 12, mon = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }, start = mon(Date.now() - (W - 1) * 7 * 864e5);
+  const {data, error} = await SB.from('submissions').select('created_at,kind,user_id').gte('created_at', start.toISOString()).limit(10000);
+  const box = $('#wk'); if (!box) return;
+  if (error){ box.innerHTML = `<p class="err small">${esc(error.message)}</p>`; return; }
+  const B = Array.from({length: W}, (_, i) => ({d: new Date(+start + i * 7 * 864e5), t: 0, r: 0}));
+  (data || []).filter(s => uids.has(s.user_id)).forEach(s => { const i = Math.floor((mon(s.created_at) - start) / (7 * 864e5) + 0.01); if (B[i]) B[i][s.kind === 'test' ? 't' : 'r']++; });
+  const mx = Math.max(1, ...B.map(b => b.t + b.r)), lab = d => d.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'});
+  box.innerHTML = `<div class="wk">${B.map(b => `<div title="Неделя с ${lab(b.d)}: тестов ${b.t}, отчётов ${b.r}">${b.t + b.r ? b.t + b.r : ''}<span style="height:${(b.t + b.r) / mx * 100}%"></span></div>`).join('')}</div><div class="wkx">${B.map((b, i) => `<span>${i % 2 ? '' : lab(b.d)}</span>`).join('')}</div>
+    <p class="small">Тесты и отчёты, отправленные студентами выбранных групп, по неделям (последние ${W}). Наведите на столбец — разбивка.</p>`;
 }
 /* ---------- карточка студента ---------- */
 async function openStudent(uid, ref, focusId){
