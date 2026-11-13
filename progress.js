@@ -96,5 +96,51 @@
     el.querySelector('.pg-go').onclick = () => { close(); authOpen('mine'); };
     document.body.appendChild(el);
   }
-  if (typeof acctRender === 'function'){ const _ar = acctRender; acctRender = function(){ const r = _ar.apply(this, arguments); if (ME && SB) setTimeout(toast, 1500); return r; }; }
+  /* выбор дисциплины: после входа (раз за сеанс) и по кнопке «Дисциплины» в панели */
+  const BASE = 'https://dkanetova76-hue.github.io/';
+  const ALL = [
+    {id: 'isu', name: 'Интеллектуальные системы управления', ky: 'Интеллектуалдык башкаруу системалары', url: BASE + 'isu-trainer/' + (KY ? 'ky.html' : '')},
+    {id: 'ct', name: 'Цифровые технологии', ky: 'Санариптик технологиялар', url: BASE + 'ct-trainer/'},
+    {id: 'kuod', name: 'Корпоративное управление и организационный дизайн', ky: 'Корпоративдик башкаруу жана уюштуруучулук дизайн', url: BASE + 'kuod-trainer/' + (KY ? 'ky.html' : '')}];
+  const C = KY ? {h: 'Дисциплинаны тандаңыз', p: f => `Сиз ${f} катары кирдиңиз. Бир эсептик жазуу бардык дисциплиналарыңызга ылайыктуу.`, here: 'Ушул жерде улантуу', go: 'Ачуу', cnt: n => `тапшырылган иштер: ${n}`, cur: 'сиз ушул жердесиз', btn: 'Дисциплиналар'}
+    : {h: 'Выберите дисциплину', p: f => `Вы вошли как ${f}. Одна учётная запись подходит для всех ваших дисциплин.`, here: 'Продолжить здесь', go: 'Открыть', cnt: n => `сдано работ: ${n}`, cur: 'вы здесь', btn: 'Дисциплины'};
+  css.textContent += `.pg-ov{position:fixed;inset:0;z-index:70;background:rgba(10,20,40,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.pg-ch{position:relative;background:#fff;color:#16202b;border-radius:10px;max-width:540px;width:100%;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:14.5px;line-height:1.45}
+.pg-ch h3{margin:0 0 4px;font-size:20px}.pg-ch>p{margin:0 0 12px;opacity:.8;font-size:13.5px}.pg-ch .pg-x{position:absolute;top:8px;right:10px;border:0;background:none;font-size:20px;color:inherit;opacity:.6;cursor:pointer}
+.pg-cc{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8dee5;border-radius:8px;padding:10px 12px;margin:8px 0}.pg-cc.cur{border-color:#2f6fd6;background:rgba(47,111,214,.07)}
+.pg-cc b{display:block}.pg-cc small{opacity:.7}.pg-cc a,.pg-cc button{font:600 13.5px inherit;white-space:nowrap;border:1px solid #2f6fd6;border-radius:6px;padding:7px 12px;text-decoration:none;cursor:pointer;background:#2f6fd6;color:#fff}.pg-cc.cur button{background:transparent;color:#2f6fd6}
+@media (prefers-color-scheme: dark){.pg-ch{background:#18202a;color:#e6ebf0}.pg-cc{border-color:#2c3743}}`;
+  async function myCourses(){
+    const ids = new Set([ID]), cnt = {}; let grpKnown = false;
+    try { const {data} = await SB.from('groups').select('course').eq('name', ME.grp); (data || []).forEach(g => { ids.add(g.course || 'isu'); grpKnown = true; }); } catch(err){}
+    try { const {data} = await SB.from('submissions').select('user_id,course:data->>course').eq('user_id', ME.id).limit(3000); (data || []).forEach(x => { const c = x.course || 'isu'; ids.add(c); cnt[c] = (cnt[c] || 0) + 1; }); } catch(err){}
+    if (!grpKnown && (ID === 'isu' || ID === 'ct')){ ids.add('isu'); ids.add('ct'); } /* группы не видны студенту — бакалаврские учебники 710500 */
+    return {list: ALL.filter(c => ids.has(c.id)), cnt};
+  }
+  function chooser(R, after){
+    const ov = document.createElement('div'); ov.className = 'pg-ov';
+    ov.innerHTML = `<div class="pg-ch" role="dialog" aria-modal="true"><button class="pg-x" aria-label="×">×</button><h3>${C.h}</h3><p>${e(C.p(ME.fio || ''))}</p>
+      ${R.list.map(c => `<div class="pg-cc ${c.id === ID ? 'cur' : ''}"><span><b>${e(KY ? c.ky : c.name)}</b><small>${C.cnt(R.cnt[c.id] || 0)}${c.id === ID ? ' · ' + C.cur : ''}</small></span>${c.id === ID ? `<button data-here>${C.here}</button>` : `<a href="${e(c.url)}">${C.go}</a>`}</div>`).join('')}</div>`;
+    const close = () => { ov.remove(); document.removeEventListener('keydown', esc); if (after) after(); };
+    const esc = ev => { if (ev.key === 'Escape') close(); };
+    ov.onclick = ev => { if (ev.target === ov || ev.target.closest('.pg-x,[data-here]')) close(); };
+    document.addEventListener('keydown', esc); document.body.appendChild(ov);
+  }
+  let chFor = null;
+  async function afterLogin(){
+    if (!ME || ME.role === 'teacher' || chFor === ME.id) return; chFor = ME.id;
+    const key = 'pg-ch-' + ME.id; let seen = false; try { seen = sessionStorage.getItem(key) === '1'; sessionStorage.setItem(key, '1'); } catch(err){}
+    if (seen){ toast(); return; }
+    const R = await myCourses(); if (R.list.length < 2){ toast(); return; }
+    chooser(R, toast);
+  }
+  if (typeof acctRender === 'function'){ const _ar = acctRender; acctRender = function(){
+    const r = _ar.apply(this, arguments);
+    if (ME && SB && ME.role !== 'teacher'){
+      const el = document.getElementById('acct'), mine = el && el.querySelector('[data-auth="mine"]');
+      if (mine && !el.querySelector('[data-pg-ch]')){ const b = document.createElement('button'); b.type = 'button'; b.className = mine.className; b.dataset.pgCh = '1'; b.textContent = C.btn;
+        b.onclick = async () => chooser(await myCourses()); mine.parentNode.insertBefore(b, mine); }
+      setTimeout(afterLogin, 800);
+    }
+    return r; }; }
 })();
