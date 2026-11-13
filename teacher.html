@@ -302,58 +302,106 @@ function renderGroups(){
   document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => { const g = GROUPS.find(x => x.code === b.dataset.toggle); await SB.from('groups').update({active: !g.active}).eq('code', g.code); await loadGroups(); renderGroups(); });
 }
 /* ---------- дашборд успеваемости ---------- */
+/* --- план семестра: модули и недели (хранится в браузере, отдельно для каждой дисциплины) --- */
+const PLAN_DEF = {start: '2026-09-01', w1: 8, w2: 16, wf: 17};
+const MODN = {'1': 'Модуль 1', '2': 'Модуль 2', 'F': 'Итоговый контроль', '': 'не учитывать'};
+function planOf(){ let p = {}; try { p = JSON.parse(localStorage.getItem('isu-plan-' + COURSE) || '{}'); } catch(e){} return {...PLAN_DEF, ...p, map: p.map || {}}; }
+const ITEMS = () => [...C().TESTS.map(t => ({id: t[0], name: t[1], kind: 'test'})), ...C().REPS.map(t => ({id: t[0], name: t[1], kind: 'report'}))];
+function defMod(id){
+  if (/^(FT|FP|FIN)$/.test(id)) return 'F'; if (id === 'M1') return '1'; if (/^M[23]$/.test(id)) return '2'; if (/^(ALL|B\d)$/.test(id)) return '';
+  const fam = id.replace(/\d+$/, ''), L = ITEMS().map(x => x.id).filter(x => x.replace(/\d+$/, '') === fam && /\d$/.test(x));
+  return L.indexOf(id) < Math.ceil(L.length / 2) ? '1' : '2';
+}
+const modOf = (P, id) => P.map[id] ?? defMod(id);
+function semWeek(P){ const s = new Date(P.start + 'T00:00:00'); if (isNaN(s)) return null; s.setDate(s.getDate() - (s.getDay() + 6) % 7); return Math.floor((Date.now() - s) / (7 * 864e5)) + 1; }
+function due(P, w){ const I = ITEMS(), n = m => I.filter(x => modOf(P, x.id) === m).length, n1 = n('1'), n2 = n('2'), nf = n('F');
+  return {n1, n2, nf, e1: w == null ? n1 : w >= P.w1 ? n1 : Math.round(n1 * Math.max(0, w) / P.w1), e2: w == null ? n2 : w <= P.w1 ? 0 : w >= P.w2 ? n2 : Math.round(n2 * (w - P.w1) / (P.w2 - P.w1)), ef: w == null || w >= P.wf ? nf : 0}; }
 const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const g5 = c => c == null ? 0 : Math.max(2, Math.min(5, Math.round(c + 1e-9)));
 function perf(){
-  const R = rows(), now = Date.now(), NT = C().TESTS.length, NR = C().REPS.length, rids = new Set(C().REPS.map(x => x[0]));
+  const R = rows(), now = Date.now(), PL = planOf(), w = semWeek(PL), E = due(PL, w), I = ITEMS(), M = {}; I.forEach(x => { M[x.kind + ':' + x.id] = modOf(PL, x.id); });
   const P = R.map(r => {
-    const rg = BEST.filter(b => b.user_id === r.user_id && b.kind === 'report' && rids.has(b.ref) && b.teacher_grade).map(b => +b.teacher_grade);
-    const parts = [r.tavg != null ? gradeOf(r.tavg) : null, rg.length ? avg(rg) : null].filter(x => x != null);
-    const cur = parts.length ? avg(parts) : null, prog = (r.tests + r.reps) / (NT + NR) * 100, idle = r.last_at ? Math.floor((now - new Date(r.last_at)) / 864e5) : null;
-    return {...r, rg: rg.length ? avg(rg) : null, rgn: rg.length, cur, cg: cur == null ? 0 : Math.round(cur + 1e-9) < 2 ? 2 : Math.min(5, Math.round(cur + 1e-9)), prog, idle};
+    const mine = BEST.filter(b => b.user_id === r.user_id && M[b.kind + ':' + b.ref] != null);
+    const md = {}; ['1', '2', 'F'].forEach(m => { const L = mine.filter(b => M[b.kind + ':' + b.ref] === m);
+      const gr = L.map(b => b.kind === 'test' ? gradeOf(+b.best) : b.teacher_grade ? +b.teacher_grade : null).filter(x => x != null);
+      md[m] = {done: L.length, g: avg(gr)}; });
+    md['1'].debt = w != null && w > PL.w1 ? E.n1 - md['1'].done : 0; md['2'].debt = w != null && w > PL.w2 ? E.n2 - md['2'].done : 0;
+    const mg = ['1', '2', 'F'].map(m => md[m].g).filter(x => x != null), cur = avg(mg);
+    const den = E.e1 + E.e2 + E.ef, pd = den ? (Math.min(md['1'].done, E.e1) + Math.min(md['2'].done, E.e2) + Math.min(md.F.done, E.ef)) / den * 100 : null;
+    const rg = mine.filter(b => b.kind === 'report' && b.teacher_grade).map(b => +b.teacher_grade);
+    const idle = r.last_at ? Math.floor((now - new Date(r.last_at)) / 864e5) : null;
+    return {...r, md, m1: md['1'].g, m2: md['2'].g, mf: md.F.g, cur, cg: g5(cur), pd, prog: (r.tests + r.reps) / (C().TESTS.length + C().REPS.length) * 100, rg: avg(rg), idle};
   });
-  const med = (a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; })(P.map(p => p.prog));
   P.forEach(p => { const k = [];
     if (!p.tests && !p.reps) k.push(['не приступал(а)', 1]);
     if (p.idle == null || p.idle >= 14) k.push([p.idle == null ? 'не входил(а)' : `нет активности ${p.idle} дн.`, 1]);
+    if (p.md['1'].debt > 0) k.push([`долги М1: ${p.md['1'].debt}`, 1]);
+    if (p.md['2'].debt > 0) k.push([`долги М2: ${p.md['2'].debt}`, 1]);
     if (p.tavg != null && p.tavg < 55) k.push([`тесты ${fmt(p.tavg, 0)} %`, 1]);
     if (p.rg != null && p.rg < 3) k.push([`отчёты ${fmt(p.rg, 1)}`, 1]);
-    if ((p.tests || p.reps) && med > 0 && p.prog < med / 2) k.push(['отстаёт от группы', 0]);
+    if ((p.tests || p.reps) && p.pd != null && p.pd < 50) k.push([`по графику ${fmt(p.pd, 0)} %`, 0]);
     if (p.paste > 5) k.push([`вставок ${p.paste}`, 0]);
     p.risk = k; });
-  return {P, med};
+  return {P, PL, w, E};
 }
 const hb = (lbl, pct, val, cls = '', tip = '', mark) => `<div class="hb ${cls}" title="${esc(tip)}"><span class="lbl">${lbl}</span><span class="tr">${mark != null ? `<i style="left:${mark}%"></i>` : ''}<span style="width:${Math.max(0, Math.min(100, pct))}%"></span></span><span class="val">${val}</span></div>`;
+const gcell = (v, extra = '') => v == null ? `<span class="c0">—</span>${extra}` : `<span class="c c${g5(v)}">${fmt(v, 1)}</span>${extra}`;
 let DSORT = {k: 'cur', d: -1};
 function renderDash(){
   const v = $('#view');
   if (!ACT.length){ v.innerHTML = `<div class="panel empty">В ${GRP ? 'группе «' + esc(GRP) + '»' : 'базе'} пока нет студентов.</div>`; return; }
-  const {P, med} = perf(), N = P.length, uids = new Set(P.map(p => p.user_id));
-  const withCur = P.filter(p => p.cur != null), risk = P.filter(p => p.risk.some(x => x[1])), riskAll = P.filter(p => p.risk.length);
+  const {P, PL, w, E} = perf(), N = P.length, uids = new Set(P.map(p => p.user_id));
+  const stage = w == null ? 'дата начала не задана' : w < 1 ? 'семестр ещё не начался' : w <= PL.w1 ? `идёт модуль 1 (контроль на ${PL.w1}-й неделе)` : w <= PL.w2 ? `идёт модуль 2 (контроль на ${PL.w2}-й неделе)` : w < PL.wf ? `модули завершены, итоговый контроль на ${PL.wf}-й неделе` : 'итоговый контроль';
+  const withCur = P.filter(p => p.cur != null), risk = P.filter(p => p.risk.some(x => x[1])), riskAll = P.filter(p => p.risk.length), withPd = P.filter(p => p.pd != null);
   const repsAll = BEST.filter(b => b.kind === 'report' && uids.has(b.user_id) && C().REPS.some(x => x[0] === b.ref)), repsChk = repsAll.filter(b => b.teacher_grade);
-  let h = `<div class="stats"><div class="stat"><b>${N}</b><span class="small">студентов</span></div>
+  let h = `<div class="bar"><span><b>Неделя ${w ?? '—'}</b> · ${stage}. По графику к этой неделе положено сдать: модуль 1 — ${E.e1} из ${E.n1}, модуль 2 — ${E.e2} из ${E.n2}${E.ef ? `, итог — ${E.ef}` : ''}.</span><button class="linkbtn" id="plan">Настройки семестра</button></div>
+    <div class="stats"><div class="stat"><b>${N}</b><span class="small">студентов</span></div>
     <div class="stat"><b>${withCur.length ? fmt(avg(withCur.map(p => p.cur)), 1) : '—'}</b><span class="small">средняя текущая оценка (${withCur.length} из ${N} с оценкой)</span></div>
-    <div class="stat"><b>${fmt(avg(P.map(p => p.prog)), 0)} %</b><span class="small">средний прогресс по курсу</span></div>
+    <div class="stat"><b>${withPd.length ? fmt(avg(withPd.map(p => p.pd)), 0) + ' %' : '—'}</b><span class="small">выполнено из положенного по графику</span></div>
     <div class="stat"><b>${repsChk.length} / ${repsAll.length}</b><span class="small">отчётов проверено</span></div>
     <div class="stat"><b class="${risk.length ? 'err' : ''}">${risk.length}</b><span class="small">в зоне риска</span></div></div>`;
+  const mrow = (m, nm, n, dl) => { const G = P.filter(p => p.md[m].g != null), full = P.filter(p => n && p.md[m].done >= n).length, dbt = dl ? P.filter(p => p.md[m].debt > 0).length : null;
+    return `<tr><td><b>${nm}</b></td><td class="num">${n}</td><td class="num">${G.length ? gcell(avg(G.map(p => p.md[m].g))) : '—'}</td><td class="num">${full}/${N}</td><td class="num ${dbt ? 'err' : ''}">${dbt == null ? '<span class="small">ещё не наступил</span>' : dbt}</td></tr>`; };
+  h += `<div class="panel"><h2>Модули</h2><div class="tbl" style="max-height:none"><table><thead><tr><th>Этап</th><th class="num">Работ</th><th class="num">Средняя оценка</th><th class="num">Сдали всё</th><th class="num">С долгами</th></tr></thead><tbody>
+    ${mrow('1', `Модуль 1 · ${PL.w1}-я неделя`, E.n1, w != null && w > PL.w1)}${mrow('2', `Модуль 2 · ${PL.w2}-я неделя`, E.n2, w != null && w > PL.w2)}${mrow('F', `Итоговый контроль · ${PL.wf}-я неделя`, E.nf, false)}</tbody></table></div>
+    <p class="small">Оценка модуля — среднее по сданным работам модуля: тест — по шкале 85 / 70 / 55 %, отчёт — ваша оценка (непроверенные не учитываются). Долг — работа модуля, не сданная к контрольной неделе.</p></div>`;
   const dist = [5, 4, 3, 2].map(g => [g, P.filter(p => p.cg === g).length]).concat([[0, P.filter(p => !p.cg).length]]), dmax = Math.max(1, ...dist.map(d => d[1]));
   h += `<div class="dgrid"><div class="panel"><h2>Текущие оценки</h2>${dist.map(([g, n]) => hb(g ? `<b>${g}</b> — ${({5:'отлично',4:'хорошо',3:'удовл.',2:'неуд.'})[g]}` : 'нет оценки', n / dmax * 100, `<b>${n}</b> · ${fmt(n / N * 100, 0)} %`, 'g' + g, `${n} студентов`)).join('')}
-      <p class="small">Текущая оценка — среднее из оценки за тесты (по шкале 85 / 70 / 55 %) и средней вашей оценки за проверенные отчёты. «Нет оценки» — не сдано ни одного теста и нет проверенных отчётов.</p></div>
+      <p class="small">Текущая оценка — среднее из оценок модулей, по которым уже есть результаты.</p></div>
     <div class="panel"><h2>Сдано работ по неделям</h2><div id="wk"><p class="small">Загрузка…</p></div></div></div>`;
+  const mtag = id => { const m = modOf(PL, id); return m ? `<span class="small">${m === 'F' ? 'итог' : 'М' + m}</span>` : ''; };
   const T = C().TESTS.map(t => { const b = BEST.filter(x => x.kind === 'test' && x.ref === t[0] && uids.has(x.user_id)); return {t, n: b.length, a: avg(b.map(x => +x.best))}; });
   const Rp = C().REPS.map(t => { const b = BEST.filter(x => x.kind === 'report' && x.ref === t[0] && uids.has(x.user_id)), g = b.filter(x => x.teacher_grade).map(x => +x.teacher_grade); return {t, n: b.length, c: g.length, g: avg(g)}; });
-  h += `<div class="dgrid"><div class="panel"><h2>Тесты: средний результат</h2>${T.map(o => hb(esc(o.t[2]) + ' <span class="small">' + esc(o.t[1].replace(/^[^.]*\.\s*/, '').slice(0, 24)) + '</span>', o.a || 0, o.n ? `<b>${fmt(o.a, 0)} %</b> · ${o.n}/${N}` : `— · 0/${N}`, o.n ? 'g' + gradeOf(o.a) : 'g0', `${o.t[1]}: средний лучший результат ${o.n ? fmt(o.a, 0) + ' %' : '—'}, прошли ${o.n} из ${N}`, 85)).join('')}
+  h += `<div class="dgrid"><div class="panel"><h2>Тесты: средний результат</h2>${T.map(o => hb(esc(o.t[2]) + ' ' + mtag(o.t[0]) + ' <span class="small">' + esc(o.t[1].replace(/^[^.]*\.\s*/, '').slice(0, 22)) + '</span>', o.a || 0, o.n ? `<b>${fmt(o.a, 0)} %</b> · ${o.n}/${N}` : `— · 0/${N}`, o.n ? 'g' + gradeOf(o.a) : 'g0', `${o.t[1]} (${MODN[modOf(PL, o.t[0])]}): средний лучший результат ${o.n ? fmt(o.a, 0) + ' %' : '—'}, прошли ${o.n} из ${N}`, 85)).join('')}
       <p class="small">Полоса — средний лучший результат прошедших тест; цвет — оценка по шкале; пунктир — 85 %. Справа — сколько студентов прошли.</p></div>
-    <div class="panel"><h2>${COURSE === 'isu' ? 'Отчёты по практикам' : 'Практические и самостоятельные'}: сдача</h2>${Rp.map(o => hb(esc(o.t[2]) + ' <span class="small">' + esc(o.t[1].replace(/^[^.]*\.\s*/, '').slice(0, 24)) + '</span>', o.n / N * 100, `<b>${o.n}</b>/${N}${o.c ? ` · ср. ${fmt(o.g, 1)}` : ''}`, '', `${o.t[1]}: сдали ${o.n} из ${N}, проверено ${o.c}${o.c ? ', средняя оценка ' + fmt(o.g, 1) : ''}`)).join('')}
+    <div class="panel"><h2>${COURSE === 'isu' ? 'Отчёты по практикам' : 'Практические и самостоятельные'}: сдача</h2>${Rp.map(o => hb(esc(o.t[2]) + ' ' + mtag(o.t[0]) + ' <span class="small">' + esc(o.t[1].replace(/^[^.]*\.\s*/, '').slice(0, 22)) + '</span>', o.n / N * 100, `<b>${o.n}</b>/${N}${o.c ? ` · ср. ${fmt(o.g, 1)}` : ''}`, '', `${o.t[1]} (${MODN[modOf(PL, o.t[0])]}): сдали ${o.n} из ${N}, проверено ${o.c}${o.c ? ', средняя оценка ' + fmt(o.g, 1) : ''}`)).join('')}
       <p class="small">Полоса — доля группы, сдавшая работу; «ср.» — средняя ваша оценка проверенных.</p></div></div>`;
-  h += `<div class="panel"><h2>Зона риска (${riskAll.length})</h2>${riskAll.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th class="stu">Студент</th>${GRP ? '' : '<th>Группа</th>'}<th>Причины</th><th class="num">Прогресс</th><th class="num">Текущая</th><th>Последняя активность</th></tr></thead><tbody>${riskAll.sort((a, b) => b.risk.filter(x => x[1]).length - a.risk.filter(x => x[1]).length || a.prog - b.prog).map(p => `<tr><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td style="white-space:normal">${p.risk.map(x => `<span class="risk ${x[1] ? 'hi' : ''}">${esc(x[0])}</span>`).join('')}</td><td class="num">${fmt(p.prog, 0)} %</td><td class="num">${p.cur == null ? '—' : `<span class="c c${p.cg}">${fmt(p.cur, 1)}</span>`}</td><td>${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="small">Никого: все работают.</p>'}
-    <p class="small">Красным — серьёзные причины (не приступал, нет активности 14+ дней, тесты ниже 55 %, отчёты ниже 3); жёлтым — сигналы (прогресс меньше половины медианы группы — ${fmt(med, 0)} %; больше 5 попыток вставки).</p></div>`;
-  const cols = [['fio', 'Студент', 'stu'], ...(GRP ? [] : [['grp', 'Группа', '']]), ['cur', 'Текущая', 'num'], ['tavg', 'Тесты, %', 'num'], ['tests', 'Тестов', 'num'], ['rg', 'Отчёты, ср.', 'num'], ['reps', 'Отчётов', 'num'], ['prog', 'Прогресс', 'num'], ['hours', 'Часов', 'num'], ['last_at', 'Активность', '']];
+  h += `<div class="panel"><h2>Зона риска (${riskAll.length})</h2>${riskAll.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th class="stu">Студент</th>${GRP ? '' : '<th>Группа</th>'}<th>Причины</th><th class="num">По графику</th><th class="num">Текущая</th><th>Последняя активность</th></tr></thead><tbody>${riskAll.sort((a, b) => b.risk.filter(x => x[1]).length - a.risk.filter(x => x[1]).length || (a.pd ?? 0) - (b.pd ?? 0)).map(p => `<tr><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td style="white-space:normal">${p.risk.map(x => `<span class="risk ${x[1] ? 'hi' : ''}">${esc(x[0])}</span>`).join('')}</td><td class="num">${p.pd == null ? '—' : fmt(p.pd, 0) + ' %'}</td><td class="num">${gcell(p.cur)}</td><td>${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="small">Никого: все работают по графику.</p>'}
+    <p class="small">Красным — серьёзные причины (не приступал, нет активности 14+ дней, долги по завершённому модулю, тесты ниже 55 %, отчёты ниже 3); жёлтым — сигналы (сдано меньше половины положенного по графику; больше 5 попыток вставки).</p></div>`;
+  const cols = [['fio', 'Студент', 'stu'], ...(GRP ? [] : [['grp', 'Группа', '']]), ['m1', 'М1', 'num'], ['m2', 'М2', 'num'], ['mf', 'Итог', 'num'], ['cur', 'Текущая', 'num'], ['pd', 'По графику', 'num'], ['tests', 'Тестов', 'num'], ['reps', 'Отчётов', 'num'], ['hours', 'Часов', 'num'], ['last_at', 'Активность', '']];
   const S = [...P].sort((a, b) => { const x = a[DSORT.k], y = b[DSORT.k]; if (typeof x === 'string' || typeof y === 'string') return String(x ?? '').localeCompare(String(y ?? ''), 'ru') * DSORT.d; return ((x ?? -1e9) - (y ?? -1e9)) * DSORT.d; });
-  h += `<div class="panel"><h2>Рейтинг студентов</h2><div class="tbl" style="max-height:none"><table><thead><tr><th class="num">№</th>${cols.map(([k, t, c]) => `<th class="${c}" data-dsort="${k}">${t}${DSORT.k === k ? (DSORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${S.map((p, i) => `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td class="num">${p.cur == null ? '—' : `<span class="c c${p.cg}">${fmt(p.cur, 1)}</span>`}</td><td class="num">${p.tavg == null ? '—' : fmt(p.tavg, 0)}</td><td class="num">${p.tests}/${C().TESTS.length}</td><td class="num">${p.rg == null ? '—' : fmt(p.rg, 1)}</td><td class="num">${p.reps}/${C().REPS.length}</td><td class="num">${fmt(p.prog, 0)} %</td><td class="num">${fmt(p.hours)}</td><td class="${p.idle == null || p.idle >= 14 ? 'err' : ''}">${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>
-    <p class="small">Прогресс — доля сданных тестов и отчётов от всех в курсе. Щелчок по заголовку — сортировка, по ФИО — карточка студента. Таблицу целиком можно скачать кнопкой «Скачать CSV».</p></div>`;
+  const dbt = d => d > 0 ? ` <span class="risk hi" title="не сдано работ модуля">−${d}</span>` : '';
+  h += `<div class="panel"><h2>Рейтинг студентов</h2><div class="tbl" style="max-height:none"><table><thead><tr><th class="num">№</th>${cols.map(([k, t, c]) => `<th class="${c}" data-dsort="${k}">${t}${DSORT.k === k ? (DSORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${S.map((p, i) => `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td class="num">${gcell(p.m1, dbt(p.md['1'].debt))}</td><td class="num">${gcell(p.m2, dbt(p.md['2'].debt))}</td><td class="num">${gcell(p.mf)}</td><td class="num">${gcell(p.cur)}</td><td class="num">${p.pd == null ? '—' : fmt(p.pd, 0) + ' %'}</td><td class="num">${p.tests}/${C().TESTS.length}</td><td class="num">${p.reps}/${C().REPS.length}</td><td class="num">${fmt(p.hours)}</td><td class="${p.idle == null || p.idle >= 14 ? 'err' : ''}">${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="small">М1, М2, Итог — оценки по этапам; «−N» — долги по завершённому модулю. «По графику» — сколько сдано из положенного к текущей неделе. Щелчок по заголовку — сортировка, по ФИО — карточка студента. «Скачать CSV» выгружает и эти столбцы.</p></div>`;
   v.innerHTML = h;
   v.querySelectorAll('[data-dsort]').forEach(th => th.onclick = () => { const k = th.dataset.dsort; DSORT = {k, d: DSORT.k === k ? -DSORT.d : (k === 'fio' || k === 'grp' ? 1 : -1)}; renderDash(); });
+  $('#plan').onclick = planDlg;
   weeks(uids);
+}
+function planDlg(){
+  const d = $('#dlg'), PL = planOf(); CARD = null;
+  d.innerHTML = `<button class="linkbtn dx" data-dx>✕ закрыть</button><h2>Настройки семестра · ${esc(COURSES[COURSE].name)}</h2>
+    <div class="bar"><label class="fld">Начало семестра (1-я неделя)<input type="date" id="p-start" value="${esc(PL.start)}"></label>
+      <label class="fld">Модуль 1 — неделя<input type="number" id="p-w1" min="1" max="30" value="${PL.w1}" style="width:80px"></label>
+      <label class="fld">Модуль 2 — неделя<input type="number" id="p-w2" min="1" max="30" value="${PL.w2}" style="width:80px"></label>
+      <label class="fld">Итоговый контроль — неделя<input type="number" id="p-wf" min="1" max="30" value="${PL.wf}" style="width:80px"></label></div>
+    <p class="small">Распределение работ по этапам. По умолчанию первая половина лекций и практик — модуль 1, вторая — модуль 2, итоговые тесты — итоговый контроль.</p>
+    <div class="tbl" style="max-height:46vh"><table><thead><tr><th>Работа</th><th>Этап</th></tr></thead><tbody>${ITEMS().map(x => `<tr><td>${x.kind === 'test' ? 'Тест' : 'Отчёт'}: ${esc(x.name)}</td><td><select data-pm="${x.id}">${['1', '2', 'F', ''].map(m => `<option value="${m}" ${modOf(PL, x.id) === m ? 'selected' : ''}>${MODN[m]}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
+    <div class="bar" style="margin-top:10px"><button class="btn" id="p-save">Сохранить</button><button class="linkbtn" id="p-def">Вернуть по умолчанию</button><span class="small">Настройки хранятся в этом браузере, отдельно для каждой дисциплины.</span></div>`;
+  if (!d.open) d.showModal();
+  $('#p-save').onclick = () => { const map = {}; d.querySelectorAll('[data-pm]').forEach(s => { if (s.value !== defMod(s.dataset.pm)) map[s.dataset.pm] = s.value; });
+    const n = id => Math.max(1, +$(id).value || 1); localStorage.setItem('isu-plan-' + COURSE, JSON.stringify({start: $('#p-start').value, w1: n('#p-w1'), w2: n('#p-w2'), wf: n('#p-wf'), map})); d.close(); };
+  $('#p-def').onclick = () => { localStorage.removeItem('isu-plan-' + COURSE); d.close(); };
 }
 async function weeks(uids){
   const W = 12, mon = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }, start = mon(Date.now() - (W - 1) * 7 * 864e5);
@@ -564,10 +612,12 @@ function aiSettings(msg){
     catch(e){ r.className = 'err small'; r.textContent = e.message; } };
 }
 function csv(){
-  const R = rows(), head = ['ФИО', 'Группа', 'Почта', 'Последняя активность', 'Дней', 'Часов', 'Лекции открыто', 'Лекции изучено', C().prLabel, 'Попыток вставки', ...C().TESTS.map(t => t[1]), ...C().REPS.map(t => 'Отчёт ' + t[1])];
-  const lines = [head, ...R.map(r => [r.fio, r.grp, r.email, dt(r.last_at), r.days, fmt(r.hours), r.lo, r.ld, r.pr, r.paste,
+  const R = rows(), PF = {}; perf().P.forEach(p => { PF[p.user_id] = p; });
+  const head = ['ФИО', 'Группа', 'Почта', 'Модуль 1', 'Долги М1', 'Модуль 2', 'Долги М2', 'Итоговый контроль', 'Текущая оценка', 'По графику, %', 'Последняя активность', 'Дней', 'Часов', 'Лекции открыто', 'Лекции изучено', C().prLabel, 'Попыток вставки', ...C().TESTS.map(t => t[1]), ...C().REPS.map(t => 'Отчёт ' + t[1])];
+  const f1 = x => x == null ? '' : fmt(x, 1);
+  const lines = [head, ...R.map(r => { const p = PF[r.user_id] || {md: {'1': {}, '2': {}}}; return [r.fio, r.grp, r.email, f1(p.m1), p.md['1'].debt || '', f1(p.m2), p.md['2'].debt || '', f1(p.mf), f1(p.cur), p.pd == null ? '' : fmt(p.pd, 0), dt(r.last_at), r.days, fmt(r.hours), r.lo, r.ld, r.pr, r.paste,
     ...TESTIDS_().map(id => { const b = best(r.user_id, 'test', id); return b ? b.best : ''; }),
-    ...C().REPS.map(t => { const b = best(r.user_id, 'report', t[0]); return b ? (b.teacher_grade || 'сдан') : ''; })])];
+    ...C().REPS.map(t => { const b = best(r.user_id, 'report', t[0]); return b ? (b.teacher_grade || 'сдан') : ''; })]; })];
   const txt = '﻿' + lines.map(l => l.map(v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';')).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'})); a.download = `${COURSES[COURSE].short}_${GRP || 'vse'}_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
