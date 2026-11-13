@@ -86,6 +86,8 @@ dialog::backdrop{background:rgba(10,20,40,.45)}
 @media (max-width:700px){h1{font-size:23px}.tbl{max-height:none}}
 </style>
 <script src="cloud-config.js"></script>
+<script src="plan.js"></script>
+<script src="https://dkanetova76-hue.github.io/ct-trainer/plan.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -334,9 +336,12 @@ function renderGroups(){
 }
 /* ---------- дашборд успеваемости ---------- */
 /* --- план семестра: модули и недели (хранится в браузере, отдельно для каждой дисциплины) --- */
-const PLAN_DEF = {start: '2026-09-01', w1: 8, w2: 16, wf: 17};
+const PLAN_DEF = {start: '2026-09-15', w1: 8, w2: 15, wf: 16};
 const MODN = {'1': 'Модуль 1', '2': 'Модуль 2', 'F': 'Итоговый контроль', '': 'не учитывать'};
-function planOf(){ let p = {}; try { p = JSON.parse(localStorage.getItem('isu-plan-' + COURSE) || '{}'); } catch(e){} return {...PLAN_DEF, ...p, map: p.map || {}}; }
+function planOf(){ /* основа — plan.js учебника (его же видят студенты); поверх — ваши изменения в этом браузере */
+  const B = (window.PLANS || {})[COURSE] || {}, bm = {}; (B.items || []).forEach(x => { bm[x.id] = x.m; });
+  let p = {}; try { p = JSON.parse(localStorage.getItem('isu-plan2-' + COURSE) || '{}'); } catch(e){}
+  return {...PLAN_DEF, ...(B.start ? {start: B.start, w1: B.w1, w2: B.w2, wf: B.wf} : {}), ...p, map: {...bm, ...(p.map || {})}}; }
 const ITEMS = () => [...C().TESTS.map(t => ({id: t[0], name: t[1], kind: 'test'})), ...C().REPS.map(t => ({id: t[0], name: t[1], kind: 'report'}))];
 function defMod(id){
   if (/^(FT|FP|FIN)$/.test(id)) return 'F'; if (id === 'M1') return '1'; if (/^M[23]$/.test(id)) return '2'; if (/^(ALL|B\d)$/.test(id)) return '';
@@ -426,13 +431,13 @@ function planDlg(){
       <label class="fld">Модуль 1 — неделя<input type="number" id="p-w1" min="1" max="30" value="${PL.w1}" style="width:80px"></label>
       <label class="fld">Модуль 2 — неделя<input type="number" id="p-w2" min="1" max="30" value="${PL.w2}" style="width:80px"></label>
       <label class="fld">Итоговый контроль — неделя<input type="number" id="p-wf" min="1" max="30" value="${PL.wf}" style="width:80px"></label></div>
-    <p class="small">Распределение работ по этапам. По умолчанию первая половина лекций и практик — модуль 1, вторая — модуль 2, итоговые тесты — итоговый контроль.</p>
+    <p class="small">Распределение работ по этапам. Исходно — по плану учебника (его же видят студенты): первая половина лекций и практик — модуль 1, вторая — модуль 2, итоговые тесты — итоговый контроль.</p>
     <div class="tbl" style="max-height:46vh"><table><thead><tr><th>Работа</th><th>Этап</th></tr></thead><tbody>${ITEMS().map(x => `<tr><td>${x.kind === 'test' ? 'Тест' : 'Отчёт'}: ${esc(x.name)}</td><td><select data-pm="${x.id}">${['1', '2', 'F', ''].map(m => `<option value="${m}" ${modOf(PL, x.id) === m ? 'selected' : ''}>${MODN[m]}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
-    <div class="bar" style="margin-top:10px"><button class="btn" id="p-save">Сохранить</button><button class="linkbtn" id="p-def">Вернуть по умолчанию</button><span class="small">Настройки хранятся в этом браузере, отдельно для каждой дисциплины.</span></div>`;
+    <div class="bar" style="margin-top:10px"><button class="btn" id="p-save">Сохранить</button><button class="linkbtn" id="p-def">Вернуть по умолчанию</button><span class="small">Изменения здесь видны только вам, в этом браузере. Студенты видят сроки из плана учебника — чтобы поменять их и для студентов, попросите обновить файл plan.js.</span></div>`;
   if (!d.open) d.showModal();
-  $('#p-save').onclick = () => { const map = {}; d.querySelectorAll('[data-pm]').forEach(s => { if (s.value !== defMod(s.dataset.pm)) map[s.dataset.pm] = s.value; });
-    const n = id => Math.max(1, +$(id).value || 1); localStorage.setItem('isu-plan-' + COURSE, JSON.stringify({start: $('#p-start').value, w1: n('#p-w1'), w2: n('#p-w2'), wf: n('#p-wf'), map})); d.close(); };
-  $('#p-def').onclick = () => { localStorage.removeItem('isu-plan-' + COURSE); d.close(); };
+  $('#p-save').onclick = () => { const map = {}; d.querySelectorAll('[data-pm]').forEach(s => { map[s.dataset.pm] = s.value; });
+    const n = id => Math.max(1, +$(id).value || 1); localStorage.setItem('isu-plan2-' + COURSE, JSON.stringify({start: $('#p-start').value, w1: n('#p-w1'), w2: n('#p-w2'), wf: n('#p-wf'), map})); d.close(); };
+  $('#p-def').onclick = () => { localStorage.removeItem('isu-plan2-' + COURSE); d.close(); };
 }
 async function weeks(uids){
   const W = 12, mon = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }, start = mon(Date.now() - (W - 1) * 7 * 864e5);
