@@ -177,7 +177,7 @@ async function afterLogin(user){
   $('#app').innerHTML = `<div class="bar">
       <div class="seg" id="courses" aria-label="Дисциплина">${Object.entries(COURSES).map(([k, c]) => `<button data-c="${k}" aria-pressed="${k === COURSE}" title="${esc(c.name)}">${c.short}</button>`).join('')}</div>
       <select id="grp" aria-label="Группа"></select>
-      <div class="seg" id="views">${[['over','Обзор'],['dash','Успеваемость'],['avn','Ведомость'],['tests','Тесты'],['reps','Отчёты'],['queue','На проверку'],['groups','Группы и коды']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${k === VIEW}">${t}${k === 'queue' ? '<span class="cnt" id="qcnt" hidden></span>' : ''}</button>`).join('')}</div>
+      <div class="seg" id="views">${[['over','Обзор'],['dash','Успеваемость'],['tests','Тесты'],['reps','Отчёты'],['queue','На проверку'],['groups','Группы и коды']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${k === VIEW}">${t}${k === 'queue' ? '<span class="cnt" id="qcnt" hidden></span>' : ''}</button>`).join('')}</div>
       <button class="btn ghost" id="reload">Обновить</button><button class="btn ghost" id="csv">Скачать CSV</button><span class="small" id="upd"></span></div>
     <div id="view"></div>`;
   $('#views').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; VIEW = b.dataset.v; localStorage.setItem('isu-t-view', VIEW); document.querySelectorAll('#views button').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
@@ -230,7 +230,6 @@ function render(){
   if (VIEW === 'groups') return renderGroups();
   if (VIEW === 'queue') return renderQueue();
   if (VIEW === 'dash') return renderDash();
-  if (VIEW === 'avn') return renderAvn();
   if (!ACT.length){ v.innerHTML = `<div class="panel empty">В ${GRP ? 'группе «' + esc(GRP) + '»' : 'базе'} пока нет студентов. Создайте группу во вкладке «Группы и коды» и раздайте студентам код.</div>`; return; }
   const R = rows(), now = Date.now();
   const tot = {n: R.length, act7: R.filter(r => r.last_at && now - new Date(r.last_at) < 7 * 864e5).length, tavg: R.filter(r => r.tavg != null), reps: R.reduce((s, r) => s + r.reps, 0)};
@@ -395,62 +394,14 @@ function planDlg(){
     <div class="bar"><label class="fld">Начало семестра (1-я неделя)<input type="date" id="p-start" value="${esc(PL.start)}"></label>
       <label class="fld">Модуль 1 — неделя<input type="number" id="p-w1" min="1" max="30" value="${PL.w1}" style="width:80px"></label>
       <label class="fld">Модуль 2 — неделя<input type="number" id="p-w2" min="1" max="30" value="${PL.w2}" style="width:80px"></label>
-      <label class="fld">Итоговый контроль — неделя<input type="number" id="p-wf" min="1" max="30" value="${PL.wf}" style="width:80px"></label>
-      <label class="fld">Оценка по общему баллу: «отл» от / «хор» от / «удовл» от<span><input type="number" id="p-c0" value="${(PL.cuts || [87, 74, 61])[0]}" style="width:64px"> <input type="number" id="p-c1" value="${(PL.cuts || [87, 74, 61])[1]}" style="width:64px"> <input type="number" id="p-c2" value="${(PL.cuts || [87, 74, 61])[2]}" style="width:64px"></span></label></div>
+      <label class="fld">Итоговый контроль — неделя<input type="number" id="p-wf" min="1" max="30" value="${PL.wf}" style="width:80px"></label></div>
     <p class="small">Распределение работ по этапам. По умолчанию первая половина лекций и практик — модуль 1, вторая — модуль 2, итоговые тесты — итоговый контроль.</p>
     <div class="tbl" style="max-height:46vh"><table><thead><tr><th>Работа</th><th>Этап</th></tr></thead><tbody>${ITEMS().map(x => `<tr><td>${x.kind === 'test' ? 'Тест' : 'Отчёт'}: ${esc(x.name)}</td><td><select data-pm="${x.id}">${['1', '2', 'F', ''].map(m => `<option value="${m}" ${modOf(PL, x.id) === m ? 'selected' : ''}>${MODN[m]}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
     <div class="bar" style="margin-top:10px"><button class="btn" id="p-save">Сохранить</button><button class="linkbtn" id="p-def">Вернуть по умолчанию</button><span class="small">Настройки хранятся в этом браузере, отдельно для каждой дисциплины.</span></div>`;
   if (!d.open) d.showModal();
   $('#p-save').onclick = () => { const map = {}; d.querySelectorAll('[data-pm]').forEach(s => { if (s.value !== defMod(s.dataset.pm)) map[s.dataset.pm] = s.value; });
-    const n = id => Math.max(1, +$(id).value || 1); localStorage.setItem('isu-plan-' + COURSE, JSON.stringify({start: $('#p-start').value, w1: n('#p-w1'), w2: n('#p-w2'), wf: n('#p-wf'), cuts: [n('#p-c0'), n('#p-c1'), n('#p-c2')], map})); d.close(); };
+    const n = id => Math.max(1, +$(id).value || 1); localStorage.setItem('isu-plan-' + COURSE, JSON.stringify({start: $('#p-start').value, w1: n('#p-w1'), w2: n('#p-w2'), wf: n('#p-wf'), map})); d.close(); };
   $('#p-def').onclick = () => { localStorage.removeItem('isu-plan-' + COURSE); d.close(); };
-}
-/* ---------- ведомость в формате AVN: Мод1 20 + Мод2 20 + ТК 20 + поощр. 10 + итог 40 ---------- */
-const AVN_MAX = {m1: 20, m2: 20, tk: 20, bonus: 10, fin: 40}, AVN_COLS = [['m1', 'Мод 1'], ['m2', 'Мод 2'], ['tk', 'Текущий контроль'], ['bonus', 'Поощрит. балл'], ['fin', 'Итоговый контроль']];
-const avnStore = () => { try { return JSON.parse(localStorage.getItem('isu-avn-' + COURSE) || '{}'); } catch(e){ return {}; } };
-const avnSave = o => { try { localStorage.setItem('isu-avn-' + COURSE, JSON.stringify(o)); } catch(e){} };
-const avnGrade = (t, PL) => { const c = PL.cuts || [87, 74, 61]; return t >= c[0] ? 'отл' : t >= c[1] ? 'хор' : t >= c[2] ? 'удовл' : 'н/у'; };
-function avnAuto(){
-  const {P, PL, w, E} = perf(), I = ITEMS(), ord = m => I.filter(x => modOf(PL, x.id) === m);
-  const t1 = ord('1').filter(x => x.kind === 'test' && !/^P\d/.test(x.id)), tf = ord('F').filter(x => x.kind === 'test'), reps = I.filter(x => x.kind === 'report' && modOf(PL, x.id));
-  const done1 = w == null || w >= PL.w1, doneF = w == null || w >= PL.wf;
-  const r1 = ord('1').filter(x => x.kind === 'report').length, r2 = ord('2').filter(x => x.kind === 'report').length;
-  const repDue = w == null ? reps.length : (w >= PL.w1 ? r1 : Math.round(r1 * Math.max(0, w) / PL.w1)) + (w <= PL.w1 ? 0 : w >= PL.w2 ? r2 : Math.round(r2 * (w - PL.w1) / (PL.w2 - PL.w1)));
-  return {PL, w, rows: P.map(p => {
-    const bt = id => { const b = BEST.find(x => x.user_id === p.user_id && x.kind === 'test' && x.ref === id); return b ? +b.best : null; };
-    const s1 = t1.map(x => bt(x.id)), g1 = s1.filter(x => x != null), sF = tf.map(x => bt(x.id)), gF = sF.filter(x => x != null);
-    const m1 = t1.length && (g1.length || done1) ? AVN_MAX.m1 * (done1 ? s1.reduce((a, x) => a + (x ?? 0), 0) / t1.length : avg(g1)) / 100 : null;
-    const fin = tf.length && (gF.length || doneF) ? AVN_MAX.fin * (doneF ? sF.reduce((a, x) => a + (x ?? 0), 0) / tf.length : avg(gF)) / 100 : null;
-    const R = BEST.filter(b => b.user_id === p.user_id && b.kind === 'report' && reps.some(x => x.id === b.ref)), chk = R.filter(b => b.teacher_grade), pend = R.length - chk.length;
-    const den = Math.max(repDue, R.length) - pend, tk = den > 0 ? AVN_MAX.tk * chk.reduce((a, b) => a + +b.teacher_grade / 5, 0) / den : null;
-    return {p, auto: {m1, m2: null, tk, bonus: null, fin}, pend, prov1: !done1 && m1 != null, provF: !doneF && fin != null};
-  })};
-}
-function renderAvn(){
-  const v = $('#view');
-  if (!ACT.length){ v.innerHTML = `<div class="panel empty">В ${GRP ? 'группе «' + esc(GRP) + '»' : 'базе'} пока нет студентов.</div>`; return; }
-  const A = avnAuto(), S = avnStore(), r1 = x => Math.round(x);
-  const val = (r, k) => { const m = (S[r.p.user_id] || {})[k]; return m != null && m !== '' ? +m : r.auto[k] == null ? null : r1(r.auto[k]); };
-  const list = [...A.rows].sort((a, b) => a.p.fio.localeCompare(b.p.fio, 'ru'));
-  const tot = r => { const s = AVN_COLS.reduce((a, [k]) => a + (val(r, k) || 0), 0); return Math.min(100, s); };
-  v.innerHTML = `<div class="bar"><span><b>Ведомость в формате AVN</b> · неделя ${A.w ?? '—'}. Максимум: Мод 1 — ${AVN_MAX.m1}, Мод 2 — ${AVN_MAX.m2}, текущий контроль — ${AVN_MAX.tk}, поощрительный — до ${AVN_MAX.bonus}, итоговый — ${AVN_MAX.fin}.</span>
-      <button class="btn ghost" id="avn-csv">Скачать ведомость (CSV)</button><button class="linkbtn" id="plan">Настройки семестра</button></div>
-    <div class="tbl" style="max-height:none"><table id="avn"><thead><tr><th class="num">№</th><th class="stu">ФИО</th>${GRP ? '' : '<th>Группа</th>'}${AVN_COLS.map(([k, t]) => `<th class="num">${t} <button class="linkbtn small" data-avncopy="${k}" title="Скопировать столбец в порядке ведомости">копир.</button></th>`).join('')}<th class="num">Общий балл</th><th>Оценка</th></tr></thead><tbody>
-    ${list.map((r, i) => { const t = tot(r), u = r.p.user_id;
-      return `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${u}">${esc(r.p.fio)}</button></td>${GRP ? '' : `<td>${esc(r.p.grp)}</td>`}
-        ${AVN_COLS.map(([k]) => { const m = (S[u] || {})[k], a = r.auto[k], note = k === 'm1' && r.prov1 || k === 'fin' && r.provF ? 'предварительно: по уже сданным тестам' : k === 'tk' && r.pend ? `ещё не проверено отчётов: ${r.pend}` : '';
-          return `<td class="num"><input data-avn="${u}" data-k="${k}" type="number" min="0" max="${AVN_MAX[k]}" step="1" value="${m ?? ''}" placeholder="${a == null ? '' : r1(a)}" title="${a == null ? 'вводите вручную' : 'авто: ' + fmt(a, 1) + (m != null && m !== '' ? ' (заменено вручную)' : '')}${note ? ' · ' + note : ''}" style="width:64px;text-align:right${m != null && m !== '' ? ';border-color:var(--accent)' : ''}">${note ? '<span class="aiwarn" title="' + esc(note) + '">*</span>' : ''}</td>`; }).join('')}
-        <td class="num"><b data-tot="${u}">${t}</b></td><td data-gr="${u}">${avnGrade(t, A.PL)}</td></tr>`; }).join('')}</tbody></table></div>
-    <p class="small">Серым в поле — автоматический балл: Мод 1 — средний лучший результат тестов к лекциям модуля 1 (тесты к практикам не входят) × ${AVN_MAX.m1}; до контрольной недели — предварительно, по уже сданным; текущий контроль — ваши оценки за отчёты (5 = полный балл) от числа положенных по графику × ${AVN_MAX.tk}; итоговый — средний результат итоговых тестов × ${AVN_MAX.fin}. Мод 2 (устный контроль) и поощрительный балл вводите сами; любой автоматический балл можно заменить, вписав своё число (поле выделится). Пустое поле — используется автоматический. <span class="aiwarn">*</span> — предварительно или есть непроверенные отчёты (наведите). Студенты в том же порядке, что в AVN (по алфавиту); «копир.» копирует столбец, чтобы вставить подряд. Ручные баллы хранятся в этом браузере.</p>`;
-  v.querySelectorAll('[data-avn]').forEach(inp => inp.onchange = () => { const o = avnStore(), u = inp.dataset.avn, k = inp.dataset.k; let x = inp.value.trim();
-    if (x !== '') x = String(Math.max(0, Math.min(AVN_MAX[k], Math.round(+x || 0))));
-    o[u] = {...(o[u] || {}), [k]: x === '' ? null : +x}; avnSave(o); renderAvn(); });
-  v.querySelectorAll('[data-avncopy]').forEach(b => b.onclick = () => { const k = b.dataset.avncopy, txt = list.map(r => val(r, k) ?? 0).join('\n'); navigator.clipboard && navigator.clipboard.writeText(txt); b.textContent = 'скопировано'; });
-  $('#plan').onclick = planDlg;
-  $('#avn-csv').onclick = () => { const head = ['№', 'ФИО', 'Группа', ...AVN_COLS.map(c => c[1]), 'Общий балл', 'Оценка'];
-    const L = [head, ...list.map((r, i) => { const t = tot(r); return [i + 1, r.p.fio, r.p.grp, ...AVN_COLS.map(([k]) => val(r, k) ?? 0), t, avnGrade(t, A.PL)]; })];
-    const txt = '﻿' + L.map(l => l.map(x => { x = String(x ?? ''); return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }).join(';')).join('\r\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], {type: 'text/csv;charset=utf-8'})); a.download = `Ведомость_${COURSES[COURSE].short}_${GRP || 'vse'}_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); };
 }
 async function weeks(uids){
   const W = 12, mon = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }, start = mon(Date.now() - (W - 1) * 7 * 864e5);
