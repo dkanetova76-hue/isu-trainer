@@ -5014,7 +5014,7 @@ function lockFields(on){
 /* --- очередь отправки: события и результаты не теряются при плохой связи --- */
 function cloudEv(kind, ref = null, val = null, data = null){
   if (!CLOUD || !ME) return;
-  const q = CQ.get(); q.push({qid:qid(), t:'events', uid:ME.id, row:{kind, ref: ref == null ? null : String(ref), val, data, at: new Date().toISOString()}}); CQ.set(q); cloudFlushSoon();
+  const q = CQ.get(); q.push({qid:qid(), t:'events', uid:ME.id, row:{kind, ref: ref == null ? null : String(ref), val, data: {...(data || {}), course:'isu'}, at: new Date().toISOString()}}); CQ.set(q); cloudFlushSoon();
 }
 let cfT = null, cfBusy = false;
 const cloudFlushSoon = () => { clearTimeout(cfT); cfT = setTimeout(cloudFlush, 3000); };
@@ -5055,7 +5055,7 @@ document.addEventListener('change', e => { if (e.target.id === 'bk-done' && e.ta
     if (!ME){ return; }
     const opens = T.items.map((x, i) => x.type === 'open' ? {q:x.q, crit:x.o, a:T.A[i] || ''} : null).filter(Boolean);
     const row = {kind:'test', ref:T.id, title:tTitle(T.id), score:T.pct, grade:T.g,
-      data:{sid: ME.id + '-' + T.seed, lv:T.lv, sec:T.sec, typed:T.typed, paste:T.paste, got:Math.round(T.got * 100) / 100, auto:T.auto,
+      data:{course:'isu', sid: ME.id + '-' + T.seed, lv:T.lv, sec:T.sec, typed:T.typed, paste:T.paste, got:Math.round(T.got * 100) / 100, auto:T.auto,
         items:T.items.map((x, i) => ({k:x.key, lv:x.lv, t:x.type, s:Math.round(T.S[i] * 100) / 100, q:x.q.slice(0, 160), a:x.type === 'open' ? null : tFmtAns(x, T.A[i]).slice(0, 300)})), open:opens}};
     const q = CQ.get(); q.push({qid:qid(), t:'submissions', uid:ME.id, row}); CQ.set(q); cloudFlush();
     const box = $('#ts-main .ts-act'); if (box) box.insertAdjacentHTML('beforebegin', `<p class="cl-ok">✓ Жыйынтык окутуучуга жөнөтүлдү (${esc(ME.fio)}, ${esc(ME.grp)}).</p>`);
@@ -5075,7 +5075,7 @@ $('#r-send').addEventListener('click', async () => {
     if (up.error) throw up.error;
     const chars = Object.entries(d).filter(([k, v]) => !k.startsWith('_') && typeof v === 'string' && !v.startsWith('data:')).reduce((s, [, v]) => s + v.length, 0);
     const {error} = await SB.from('submissions').insert({kind:'report', ref:'PR' + WORK, title:WORKS[WORK].title, score:Math.round(100 * c.ok / c.total), file_path:path,
-      data:{typed:d._typed || 0, paste:d._paste || 0, chars, variant:REP.common.variant || 1, method:REP.common.method || ''}});
+      data:{course:'isu', typed:d._typed || 0, paste:d._paste || 0, chars, variant:REP.common.variant || 1, method:REP.common.method || ''}});
     if (error) throw error;
     st.innerHTML = `<span class="cl-okt">✓ №${WORK} иш боюнча отчёт ${new Date().toLocaleString('ru-RU')} тапшырылды. Бааны жана эскертүүлөрдү «Менин иштерим» бөлүмүнөн караңыз.</span>`;
   } catch(e){ st.innerHTML = `<span class="cl-err">Жөнөтүү мүмкүн болгон жок (${esc(e.message || 'байланыш жок')}). Интернетти текшерип, кайра басыңыз.</span>`; }
@@ -5119,9 +5119,10 @@ const AUERR = e => { const m = (e && e.message) || ''; if (/Invalid login/i.test
   if (/Database error/i.test(m)) return 'Каттоо четке кагылды: топтун кодун жана аты-жөнүңүздү текшериңиз.'; if (/valid email|invalid format/i.test(m)) return 'Почтанын дарегин текшериңиз.';
   if (/rate limit|too many/i.test(m)) return 'Аракеттер өтө көп. Бир мүнөт күтө туруңуз.'; return m || 'Сервер менен байланыш жок.'; };
 async function loadMine(){
-  const {data, error} = await SB.from('submissions').select('id,kind,ref,title,score,grade,teacher_grade,teacher_comment,created_at').order('created_at', {ascending:false}).limit(300);
+  let {data, error} = await SB.from('submissions').select('id,kind,ref,title,score,grade,teacher_grade,teacher_comment,created_at,course:data->>course').order('created_at', {ascending:false}).limit(300);
   const box = $('#au-mine'); if (!box) return;
   if (error){ box.innerHTML = `<p class="cl-err">${esc(AUERR(error))}</p>`; return; }
+  data = data.filter(s => !s.course || s.course === 'isu');
   if (!data.length){ box.innerHTML = '<p class="small">Азырынча эч нерсе тапшырылган жок.</p>'; return; }
   box.innerHTML = `<div class="tbl"><table><thead><tr><th>Күнү</th><th>Иш</th><th class="num">Жыйынтык</th><th>Окутуучунун баасы</th></tr></thead><tbody>${data.map(s => `<tr><td class="small">${new Date(s.created_at).toLocaleString('ru-RU', {dateStyle:'short', timeStyle:'short'})}</td><td>${s.kind === 'test' ? 'Тест: ' : 'Отчёт: '}${esc(s.title || s.ref)}</td><td class="num">${s.kind === 'test' ? s.score + ' %' : 'толтурулган ' + s.score + ' %'}</td><td>${s.teacher_grade ? `<b>${s.teacher_grade}</b>` : '<span class="small">текшерилген жок</span>'}${s.teacher_comment ? `<br><span class="small">${esc(s.teacher_comment)}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
 }

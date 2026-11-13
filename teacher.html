@@ -198,23 +198,54 @@ async function loadGroups(){
   if (GRP && !names.includes(GRP)) GRP = '';
   $('#grp').innerHTML = `<option value="">Все группы</option>` + names.map(n => `<option ${n === GRP ? 'selected' : ''}>${esc(n)}</option>`).join('');
 }
+/* Все учебники пишут в одну базу. Дисциплина работы — data.course (у старых работ ИСУ поля нет),
+   дисциплина события — data.course (до 13.11.2026 не записывалась: такие события относим к дисциплине группы студента). */
+const subCourse = s => s.course || 'isu';
+const homeCourse = grp => { const cs = [...new Set(ALLGROUPS.filter(g => g.name === grp).map(g => g.course))]; return cs.length === 1 ? cs[0] : 'isu'; };
+async function fetchByUsers(table, cols, uids, extra){
+  const out = [], U = [...uids];
+  for (let i = 0; i < U.length; i += 80){
+    for (let from = 0; from < 200000; from += 1000){
+      let q = SB.from(table).select(cols).in('user_id', U.slice(i, i + 80)); if (extra) q = extra(q);
+      const {data, error} = await q.range(from, from + 999);
+      if (error) throw error; out.push(...(data || [])); if (!data || data.length < 1000) break;
+    }
+  }
+  return out;
+}
+async function loadBest(uids){
+  const S = (await fetchByUsers('submissions', 'user_id,kind,ref,score,teacher_grade,checked_at,created_at,course:data->>course', uids)).filter(s => subCourse(s) === COURSE);
+  const M = {};
+  S.sort((x, y) => x.created_at < y.created_at ? -1 : 1).forEach(s => { const k = s.user_id + '|' + s.kind + '|' + s.ref, r = M[k] || (M[k] = {user_id: s.user_id, kind: s.kind, ref: s.ref, best: -1, attempts: 0, teacher_grade: null, last_at: null});
+    r.best = Math.max(r.best, +s.score || 0); r.attempts++; r.last_at = s.created_at; if (s.teacher_grade) r.teacher_grade = s.teacher_grade; });
+  return Object.values(M);
+}
+async function courseActivity(rows){
+  const E = await fetchByUsers('events', 'user_id,kind,ref,val,at,course:data->>course', rows.map(r => r.user_id), q => q.neq('kind', 'login'));
+  const by = {}; rows.forEach(r => { by[r.user_id] = {r, home: homeCourse(r.grp), lo: new Set(), ld: new Set(), pr: new Set(), paste: 0, sec: 0, days: new Set(), last: null}; });
+  E.forEach(e => { const o = by[e.user_id]; if (!o || (e.course || o.home) !== COURSE) return;
+    if (e.kind === 'lecture') o.lo.add(+e.ref); else if (e.kind === 'lecture_done') o.ld.add(+e.ref); else if (e.kind === 'practice') o.pr.add(String(e.ref)); else if (e.kind === 'paste') o.paste++; else if (e.kind === 'time') o.sec += +e.val || 0;
+    o.days.add(new Date(e.at).toLocaleDateString('sv')); if (!o.last || e.at > o.last) o.last = e.at; });
+  return rows.map(r => { const o = by[r.user_id]; return {...r, lectures_opened: [...o.lo].filter(n => n > 0), lectures_done: [...o.ld].filter(n => n > 0), practices: [...o.pr], paste: o.paste, minutes: Math.round(o.sec / 60), days: o.days.size, last_at: o.last}; });
+}
 async function load(){
   $('#view').innerHTML = '<div class="panel empty">Загрузка…</div>';
-  const p = {p_grp: GRP || null};
-  const [a, b, q] = await Promise.all([SB.rpc('group_activity', p), SB.rpc('group_best', p), loadQueue()]);
-  if (a.error || b.error){ $('#view').innerHTML = `<div class="panel err">Ошибка загрузки: ${esc((a.error || b.error).message)}</div>`; return; }
-  const cg = new Set(GROUPS.map(g => g.name));
-  ACT = (a.data || []).filter(x => cg.has(x.grp)); const uids = new Set(ACT.map(x => x.user_id));
-  BEST = (b.data || []).filter(x => uids.has(x.user_id)); QUEUE = q.filter(x => cg.has(x.profiles.grp));
+  try {
+    const [a, q] = await Promise.all([SB.rpc('group_activity', {p_grp: GRP || null}), loadQueue()]);
+    if (a.error) throw a.error;
+    const cg = new Set(GROUPS.map(g => g.name)), rows0 = (a.data || []).filter(x => cg.has(x.grp)), uids = new Set(rows0.map(x => x.user_id));
+    const [act, bst] = await Promise.all([courseActivity(rows0), loadBest(uids)]);
+    ACT = act; BEST = bst; QUEUE = q.filter(x => cg.has(x.profiles.grp));
+  } catch(e){ $('#view').innerHTML = `<div class="panel err">Ошибка загрузки: ${esc(e.message || e)}</div>`; return; }
   $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length;
   $('#upd').textContent = 'Обновлено ' + new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
   render();
 }
 async function loadQueue(){
-  let q = SB.from('submissions').select('id,kind,ref,title,score,created_at,user_id,file_path,open:data->open,course:data->course,got:data->got,auto:data->auto,profiles!inner(fio,grp)').is('checked_at', null).order('created_at', {ascending:true}).limit(500);
+  let q = SB.from('submissions').select('id,kind,ref,title,score,created_at,user_id,file_path,open:data->open,course:data->>course,got:data->got,auto:data->auto,profiles!inner(fio,grp)').is('checked_at', null).order('created_at', {ascending:true}).limit(500);
   if (GRP) q = q.eq('profiles.grp', GRP);
   const {data} = await q;
-  return (data || []).filter(s => s.kind === 'report' || (Array.isArray(s.open) && s.open.some(o => (o.a || '').trim())));
+  return (data || []).filter(s => subCourse(s) === COURSE && (s.kind === 'report' || (Array.isArray(s.open) && s.open.some(o => (o.a || '').trim()))));
 }
 const best = (uid, kind, ref) => BEST.find(r => r.user_id === uid && r.kind === kind && r.ref === ref);
 function rows(){
@@ -405,11 +436,11 @@ function planDlg(){
 }
 async function weeks(uids){
   const W = 12, mon = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }, start = mon(Date.now() - (W - 1) * 7 * 864e5);
-  const {data, error} = await SB.from('submissions').select('created_at,kind,user_id').gte('created_at', start.toISOString()).limit(10000);
+  const {data, error} = await SB.from('submissions').select('created_at,kind,user_id,course:data->>course').gte('created_at', start.toISOString()).limit(10000);
   const box = $('#wk'); if (!box) return;
   if (error){ box.innerHTML = `<p class="err small">${esc(error.message)}</p>`; return; }
   const B = Array.from({length: W}, (_, i) => ({d: new Date(+start + i * 7 * 864e5), t: 0, r: 0}));
-  (data || []).filter(s => uids.has(s.user_id)).forEach(s => { const i = Math.floor((mon(s.created_at) - start) / (7 * 864e5) + 0.01); if (B[i]) B[i][s.kind === 'test' ? 't' : 'r']++; });
+  (data || []).filter(s => uids.has(s.user_id) && subCourse(s) === COURSE).forEach(s => { const i = Math.floor((mon(s.created_at) - start) / (7 * 864e5) + 0.01); if (B[i]) B[i][s.kind === 'test' ? 't' : 'r']++; });
   const mx = Math.max(1, ...B.map(b => b.t + b.r)), lab = d => d.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'});
   box.innerHTML = `<div class="wk">${B.map(b => `<div title="Неделя с ${lab(b.d)}: тестов ${b.t}, отчётов ${b.r}">${b.t + b.r ? b.t + b.r : ''}<span style="height:${(b.t + b.r) / mx * 100}%"></span></div>`).join('')}</div><div class="wkx">${B.map((b, i) => `<span>${i % 2 ? '' : lab(b.d)}</span>`).join('')}</div>
     <p class="small">Тесты и отчёты, отправленные студентами выбранных групп, по неделям (последние ${W}). Наведите на столбец — разбивка.</p>`;
@@ -421,7 +452,7 @@ async function openStudent(uid, ref, focusId){
   const [s, ev] = await Promise.all([
     SB.from('submissions').select('*').eq('user_id', uid).order('created_at', {ascending:false}).limit(500),
     SB.from('events').select('kind,ref,val,at').eq('user_id', uid).neq('kind', 'time').order('at', {ascending:false}).limit(60)]);
-  let subs = s.data || []; if (ref) subs = subs.filter(x => x.ref === ref);
+  let subs = (s.data || []).filter(x => ((x.data || {}).course || 'isu') === COURSE); if (ref) subs = subs.filter(x => x.ref === ref);
   subs.forEach(x => { SUBS[x.id] = x; }); CARD = [uid, ref, focusId];
   const lec = n => (a.lectures_done || []).includes(n) ? '<span class="c c5">✓</span>' : (a.lectures_opened || []).includes(n) ? '<span class="c c4">откр.</span>' : '<span class="c0">·</span>';
   const EVN = {login:'вход', lecture:'открыл лекцию', lecture_done:'отметил лекцию изученной', practice:'открыл практическую работу', test_start:'начал тест', paste:'попытка вставки'};
@@ -468,7 +499,7 @@ async function saveGrade(id, btn){
   const {error} = await SB.from('submissions').update({teacher_grade: g ? +g : null, teacher_comment: c || null, checked_at: g ? new Date().toISOString() : null}).eq('id', id);
   btn.disabled = false; const m = $('#sv-' + id); m.className = error ? 'err small' : 'ok small'; m.textContent = error ? error.message : 'Сохранено';
   if (!error && g){ delete AI.drafts[id]; AI.save(); if (SUBS[id]) SUBS[id].checked_at = new Date().toISOString(); }
-  if (!error){ const [b, q] = await Promise.all([SB.rpc('group_best', {p_grp: GRP || null}), loadQueue()]); BEST = b.data || BEST; QUEUE = q; $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length; }
+  if (!error){ const cg = new Set(GROUPS.map(g => g.name)), [b, q] = await Promise.all([loadBest(new Set(ACT.map(x => x.user_id))).catch(() => BEST), loadQueue()]); BEST = b; QUEUE = q.filter(x => cg.has(x.profiles.grp)); $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length; }
 }
 $('#dlg').addEventListener('close', () => { CARD = null; if (ME) render(); });
 /* ---------- черновая проверка с помощью ИИ (Claude API) ----------
@@ -572,8 +603,8 @@ async function aiConfirm(id){
   delete AI.drafts[id]; AI.save(); return true;
 }
 async function refreshQueue(){
-  const [b, q] = await Promise.all([SB.rpc('group_best', {p_grp: GRP || null}), loadQueue()]);
-  const cg = new Set(GROUPS.map(g => g.name)); BEST = b.data || BEST; QUEUE = q.filter(x => cg.has(x.profiles.grp));
+  const [b, q] = await Promise.all([loadBest(new Set(ACT.map(x => x.user_id))).catch(() => BEST), loadQueue()]);
+  const cg = new Set(GROUPS.map(g => g.name)); BEST = b; QUEUE = q.filter(x => cg.has(x.profiles.grp));
   $('#qcnt').hidden = !QUEUE.length; $('#qcnt').textContent = QUEUE.length; render();
 }
 function aiSettings(msg){
