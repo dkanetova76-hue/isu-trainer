@@ -88,6 +88,7 @@ dialog::backdrop{background:rgba(10,20,40,.45)}
 <script src="cloud-config.js"></script>
 <script src="plan.js"></script>
 <script src="https://dkanetova76-hue.github.io/ct-trainer/plan.js"></script>
+<script src="https://dkanetova76-hue.github.io/py-trainer/plan.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -106,7 +107,8 @@ const CFG = (window.ISU_CLOUD && ISU_CLOUD.url && ISU_CLOUD.key) ? ISU_CLOUD : n
 const COURSES = {
   isu: {name:'Интеллектуальные системы управления', short:'ИСУ', book:'index.html'},
   kuod: {name:'Корпоративное управление и организационный дизайн', short:'КУОД', book:'https://dkanetova76-hue.github.io/kuod-trainer/'},
-  ct: {name:'Цифровые технологии', short:'ЦТ', book:'https://dkanetova76-hue.github.io/ct-trainer/'}
+  ct: {name:'Цифровые технологии', short:'ЦТ', book:'https://dkanetova76-hue.github.io/ct-trainer/'},
+  py: {name:'Программирование (переподготовка учителей)', short:'ПРГ', book:'https://dkanetova76-hue.github.io/py-trainer/'}
 };
 let COURSE = localStorage.getItem('isu-t-course') || 'isu', HAS_COURSE = true;
 const ISU_LEC = ['Основы ИСУ','Архитектура ИСУ','Представление знаний','Экспертные системы','Нечёткие множества','Мамдани и Сугено','Машинное обучение','Прогноз и аномалии','Нейронные сети','СППР, IoT, двойники'];
@@ -130,6 +132,9 @@ const CC = {
     TESTS: CT_TESTS,
     REPS: [...CT_PZ.map((n, i) => ['PZ' + (i + 1), `ПЗ-${i + 1}. ${n}`, 'ПЗ' + (i + 1)]), ...CT_SRS.map((n, i) => ['SRS' + (i + 1), `СРС-${i + 1}. ${n}`, 'С' + (i + 1)])]}
 };
+CC.py = {LEC: ['Алгоритмы и первая программа','Ветвления','Циклы','Строки и списки','Функции, отладка, методика'], PRACT: 2, prLabel:'Практ. занятия',
+  TESTS: [...['Алгоритмы и первая программа','Ветвления','Циклы','Строки и списки','Функции, отладка, методика'].map((n, i) => ['L' + (i + 1), `Лекция ${i + 1}. ${n}`, 'Л' + (i + 1)]), ['FT', 'Итоговый тест по теории', 'Итог']],
+  REPS: [['PR1', 'Практическое занятие 1', 'ПЗ1'], ['PR2', 'Практическое занятие 2', 'ПЗ2']]};
 const C = () => CC[COURSE] || CC.isu;
 let LEC = ISU_LEC, PRN = ISU_PRN;
 const TESTIDS_ = () => C().TESTS.map(t => t[0]);
@@ -482,7 +487,8 @@ function subHTML(x, focusId){
   } else {
     body += `<p class="small">Заполнено ${x.score} % обязательных частей · набрано с клавиатуры ${D.typed ?? 0} знаков (в полях ${D.chars ?? 0}) · попыток вставки ${D.paste ?? 0} · вариант ${D.variant ?? '—'} · ${esc(D.method || '')}</p>
       ${D.chars && D.typed < D.chars * 0.5 ? '<p class="err small">Набрано с клавиатуры заметно меньше, чем текста в полях: возможно, часть текста введена в обход (автозаполнение, другое устройство). Стоит уточнить у студента.</p>' : ''}
-      ${x.file_path ? `<button class="btn ghost" data-file="${esc(x.file_path)}">Скачать отчёт (DOCX)</button>` : ''}`;
+      ${x.file_path ? `<button class="btn ghost" data-file="${esc(x.file_path)}">Скачать отчёт (DOCX)</button>` : ''}
+      ${(D.tasks || []).map(t => `<p style="margin:10px 0 2px"><b>${esc(t.id)}.</b> ${esc(t.t)}</p><pre class="open-a" style="white-space:pre-wrap;font:12.5px ui-monospace,monospace">${esc(t.code || '— нет решения —')}</pre>${t.out ? `<p class="small" style="margin:0">Вывод: ${esc(t.out)}</p>` : ''}`).join('')}`;
   }
   const gr = x.teacher_grade, needs = x.kind === 'report' || (D.open || []).some(o => (o.a || '').trim()), dr = !x.checked_at && AI.drafts[x.id];
   if (needs && !x.checked_at) body += aiBox(x, dr);
