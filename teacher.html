@@ -50,6 +50,7 @@ tbody tr:hover{background:var(--accent-soft)}
 td.stu{position:sticky;left:0;background:var(--panel);z-index:1;font-weight:600}tbody tr:hover td.stu{background:var(--accent-soft)}
 thead th.stu{left:0;z-index:3}
 .c{display:inline-block;min-width:44px;text-align:center;border-radius:4px;padding:1px 5px;font:600 12.5px var(--f-mono);cursor:pointer}
+.share{margin:-4px 0 12px;gap:10px}.share select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
 .c5{background:var(--good-soft);color:var(--good)}.c4{background:var(--accent-soft);color:var(--accent)}.c3{background:var(--warn-soft);color:var(--warn)}.c2{background:var(--bad-soft);color:var(--bad)}
 .c0{color:var(--muted)}.att{font-size:10.5px;color:var(--muted);margin-left:2px}
 .pill{font:600 11px var(--f-mono);border-radius:999px;padding:1px 7px;background:var(--bg);border:1px solid var(--line)}
@@ -422,12 +423,77 @@ function renderDash(){
   const cols = [['fio', 'Студент', 'stu'], ...(GRP ? [] : [['grp', 'Группа', '']]), ['m1', 'М1', 'num'], ['m2', 'М2', 'num'], ['mf', 'Итог', 'num'], ['cur', 'Текущая', 'num'], ['pd', 'По графику', 'num'], ['tests', 'Тестов', 'num'], ['reps', 'Отчётов', 'num'], ['hours', 'Часов', 'num'], ['last_at', 'Активность', '']];
   const S = [...P].sort((a, b) => { const x = a[DSORT.k], y = b[DSORT.k]; if (typeof x === 'string' || typeof y === 'string') return String(x ?? '').localeCompare(String(y ?? ''), 'ru') * DSORT.d; return ((x ?? -1e9) - (y ?? -1e9)) * DSORT.d; });
   const dbt = d => d > 0 ? ` <span class="risk hi" title="не сдано работ модуля">−${d}</span>` : '';
-  h += `<div class="panel"><h2>Рейтинг студентов</h2><div class="tbl" style="max-height:none"><table><thead><tr><th class="num">№</th>${cols.map(([k, t, c]) => `<th class="${c}" data-dsort="${k}">${t}${DSORT.k === k ? (DSORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${S.map((p, i) => `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td class="num">${gcell(p.m1, dbt(p.md['1'].debt))}</td><td class="num">${gcell(p.m2, dbt(p.md['2'].debt))}</td><td class="num">${gcell(p.mf)}</td><td class="num">${gcell(p.cur)}</td><td class="num">${p.pd == null ? '—' : fmt(p.pd, 0) + ' %'}</td><td class="num">${p.tests}/${C().TESTS.length}</td><td class="num">${p.reps}/${C().REPS.length}</td><td class="num">${fmt(p.hours)}</td><td class="${p.idle == null || p.idle >= 14 ? 'err' : ''}">${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>
+  h += `<div class="panel"><h2>Рейтинг студентов</h2>
+    <div class="bar share"><span class="small">Для чата группы:</span>
+      <label class="small">Подписи <select id="sh-names"><option value="short">Фамилия И. О.</option><option value="full">ФИО полностью</option><option value="none">Без имён (только №)</option></select></label>
+      <button class="btn" id="sh-png">Скачать картинку (PNG)</button><button class="btn ghost" id="sh-copy">Копировать картинку</button><button class="btn ghost" id="sh-xls">Таблица для Excel</button><span class="small" id="sh-msg"></span></div>
+    <div class="tbl" style="max-height:none"><table><thead><tr><th class="num">№</th>${cols.map(([k, t, c]) => `<th class="${c}" data-dsort="${k}">${t}${DSORT.k === k ? (DSORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${S.map((p, i) => `<tr><td class="num small">${i + 1}</td><td class="stu"><button class="linkbtn" data-stu="${p.user_id}">${esc(p.fio)}</button></td>${GRP ? '' : `<td>${esc(p.grp)}</td>`}<td class="num">${gcell(p.m1, dbt(p.md['1'].debt))}</td><td class="num">${gcell(p.m2, dbt(p.md['2'].debt))}</td><td class="num">${gcell(p.mf)}</td><td class="num">${gcell(p.cur)}</td><td class="num">${p.pd == null ? '—' : fmt(p.pd, 0) + ' %'}</td><td class="num">${p.tests}/${C().TESTS.length}</td><td class="num">${p.reps}/${C().REPS.length}</td><td class="num">${fmt(p.hours)}</td><td class="${p.idle == null || p.idle >= 14 ? 'err' : ''}">${dt(p.last_at)}</td></tr>`).join('')}</tbody></table></div>
     <p class="small">М1, М2, Итог — оценки по этапам; «−N» — долги по завершённому модулю. «По графику» — сколько сдано из положенного к текущей неделе. Щелчок по заголовку — сортировка, по ФИО — карточка студента. «Скачать CSV» выгружает и эти столбцы.</p></div>`;
   v.innerHTML = h;
   v.querySelectorAll('[data-dsort]').forEach(th => th.onclick = () => { const k = th.dataset.dsort; DSORT = {k, d: DSORT.k === k ? -DSORT.d : (k === 'fio' || k === 'grp' ? 1 : -1)}; renderDash(); });
   $('#plan').onclick = planDlg;
+  const nm = $('#sh-names'); nm.value = localStorage.getItem('isu-share-names') || 'short'; nm.onchange = () => localStorage.setItem('isu-share-names', nm.value);
+  $('#sh-png').onclick = () => shareImg(S, w, 'save');
+  $('#sh-copy').onclick = () => shareImg(S, w, 'copy');
+  $('#sh-xls').onclick = () => shareXls(S, w);
   weeks(uids);
+}
+/* ---------- выгрузка рейтинга для чата группы ---------- */
+const shName = (fio, i) => { const m = localStorage.getItem('isu-share-names') || 'short', p = String(fio || '').trim().split(/\s+/);
+  return m === 'none' ? 'Студент ' + (i + 1) : m === 'full' ? p.join(' ') : p[0] + (p[1] ? ' ' + p[1][0] + '.' : '') + (p[2] ? ' ' + p[2][0] + '.' : ''); };
+const shRows = (S, w) => S.map((p, i) => ({n: i + 1, name: shName(p.fio, i), grp: p.grp, m1: p.m1, d1: p.md['1'].debt, m2: p.m2, d2: p.md['2'].debt, mf: p.mf, cur: p.cur, pd: p.pd, t: `${p.tests}/${C().TESTS.length}`, r: `${p.reps}/${C().REPS.length}`}));
+const shFile = ext => `Успеваемость_${COURSES[COURSE].short}_${(GRP || 'все_группы').replace(/[^\wА-Яа-яЁё-]+/g, '_')}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+function shareImg(S, w, mode){
+  const R = shRows(S, w), all = !GRP, dpr = 2, pad = 28, rh = 30, hh = 34;
+  const cols = [['№', 34, 'c'], ['Студент', 0, 'l'], ...(all ? [['Группа', 110, 'l']] : []), ['М1', 70, 'c'], ['М2', 70, 'c'], ['Итог', 62, 'c'], ['Текущая', 78, 'c'], ['По графику', 92, 'c'], ['Тесты', 66, 'c'], ['Отчёты', 70, 'c']];
+  const F = '"Segoe UI", "IBM Plex Sans", Arial, sans-serif', cv = document.createElement('canvas'), g = cv.getContext('2d');
+  g.font = `15px ${F}`; cols[1][1] = Math.max(200, Math.min(380, Math.ceil(Math.max(...R.map(r => g.measureText(r.name).width), 80)) + 24));
+  const W = pad * 2 + cols.reduce((a, c) => a + c[1], 0), top = 92, H = top + hh + R.length * rh + 74;
+  cv.width = W * dpr; cv.height = H * dpr; g.scale(dpr, dpr);
+  const GC = {5: ['#e1f0e6', '#1f6b3f'], 4: ['#e3e9f3', '#2a4a7a'], 3: ['#f6ecd8', '#8a5a00'], 2: ['#f6e1dd', '#a5372a']};
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#1c2531'; g.font = `600 22px ${F}`; g.fillText('Успеваемость · ' + COURSES[COURSE].name, pad, 42, W - pad * 2);
+  g.fillStyle = '#5a6573'; g.font = `15px ${F}`;
+  g.fillText(`${GRP ? 'Группа ' + GRP : 'Все группы'} · ${w != null && w > 0 ? w + '-я неделя семестра · ' : ''}на ${new Date().toLocaleDateString('ru-RU')} · студентов: ${R.length}`, pad, 70, W - pad * 2);
+  g.fillStyle = '#e9ebe6'; g.fillRect(pad, top, W - pad * 2, hh);
+  let x = pad; g.fillStyle = '#1c2531'; g.font = `600 13px ${F}`;
+  cols.forEach(([t, cw, al]) => { g.textAlign = al === 'c' ? 'center' : 'left'; g.fillText(t, al === 'c' ? x + cw / 2 : x + 8, top + 22); x += cw; });
+  const cell = (v, debt, cx, cw, y) => {
+    if (v == null){ g.fillStyle = '#9aa5b3'; g.textAlign = 'center'; g.fillText('—', cx + cw / 2, y + 20); }
+    else { const c = GC[g5(v)]; const bw = 40; g.fillStyle = c[0]; g.beginPath(); (g.roundRect ? g.roundRect(cx + cw / 2 - bw / 2 - (debt > 0 ? 10 : 0), y + 5, bw, rh - 10, 5) : g.rect(cx + cw / 2 - bw / 2 - (debt > 0 ? 10 : 0), y + 5, bw, rh - 10)); g.fill();
+      g.fillStyle = c[1]; g.font = `600 14px ${F}`; g.textAlign = 'center'; g.fillText(fmt(v, 1), cx + cw / 2 - (debt > 0 ? 10 : 0), y + 20); }
+    if (debt > 0){ g.fillStyle = '#a5372a'; g.font = `600 12px ${F}`; g.textAlign = 'left'; g.fillText('−' + debt, cx + cw / 2 + 13, y + 20); }
+  };
+  R.forEach((r, i) => { const y = top + hh + i * rh; if (i % 2){ g.fillStyle = '#f6f7f4'; g.fillRect(pad, y, W - pad * 2, rh); }
+    g.strokeStyle = '#e3e6e4'; g.beginPath(); g.moveTo(pad, y + rh); g.lineTo(W - pad, y + rh); g.stroke();
+    let x = pad; const V = [String(r.n), r.name, ...(all ? [r.grp] : []), [r.m1, r.d1], [r.m2, r.d2], [r.mf, 0], [r.cur, 0], r.pd == null ? '—' : fmt(r.pd, 0) + ' %', r.t, r.r];
+    cols.forEach(([t, cw, al], k) => { const v = V[k];
+      if (Array.isArray(v)) cell(v[0], v[1], x, cw, y);
+      else { g.fillStyle = k === 0 ? '#5a6573' : '#1c2531'; g.font = `${k === 1 ? 15 : 14}px ${F}`; g.textAlign = al === 'c' ? 'center' : 'left'; g.fillText(v, al === 'c' ? x + cw / 2 : x + 8, y + 20, cw - 12); }
+      x += cw; }); });
+  g.textAlign = 'left'; g.fillStyle = '#5a6573'; g.font = `12.5px ${F}`;
+  const fy = top + hh + R.length * rh + 26;
+  g.fillText('М1, М2, Итог — оценки по этапам (5-балльная шкала); −N — несданные работы модуля после контрольной недели.', pad, fy, W - pad * 2);
+  g.fillText('«По графику» — доля сданного из положенного к этой неделе. Текущая — среднее из оценок этапов.', pad, fy + 18, W - pad * 2);
+  const msg = t => { $('#sh-msg').textContent = t; };
+  cv.toBlob(async b => {
+    if (mode === 'copy'){
+      try { await navigator.clipboard.write([new ClipboardItem({'image/png': b})]); msg('Картинка скопирована — вставьте её в чат (Ctrl+V).'); }
+      catch(e){ msg('Браузер не дал скопировать картинку — скачайте PNG.'); }
+      return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = shFile('png'); document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); msg('Картинка сохранена.');
+  }, 'image/png');
+}
+function shareXls(S, w){
+  const R = shRows(S, w), all = !GRP, q = v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const head = ['№', 'Студент', ...(all ? ['Группа'] : []), 'М1', 'Долги М1', 'М2', 'Долги М2', 'Итог', 'Текущая', 'По графику, %', 'Тестов', 'Отчётов'];
+  const num = v => v == null ? '' : fmt(v, 1);
+  const lines = [[`Успеваемость · ${COURSES[COURSE].name} · ${GRP || 'все группы'} · на ${new Date().toLocaleDateString('ru-RU')}`], head,
+    ...R.map(r => [r.n, r.name, ...(all ? [r.grp] : []), num(r.m1), r.d1 || '', num(r.m2), r.d2 || '', num(r.mf), num(r.cur), r.pd == null ? '' : Math.round(r.pd), r.t.replace('/', ' из '), r.r.replace('/', ' из ')])];
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.map(l => l.map(q).join(';')).join('\r\n')], {type:'text/csv;charset=utf-8'}));
+  a.download = shFile('csv'); document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  $('#sh-msg').textContent = 'Таблица сохранена: откройте файл в Excel.';
 }
 function planDlg(){
   const d = $('#dlg'), PL = planOf(); CARD = null;
