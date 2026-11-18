@@ -713,10 +713,17 @@ function aiSettings(msg){
     try { await navigator.clipboard.writeText(txt); $('#ai-mm').className = 'ok small'; $('#ai-mm').textContent = `Скопировано: ${parts.length} работ. Вставьте в чат с Claude.`; }
     catch(e){ $('#ai-mans').value = txt; $('#ai-mm').textContent = 'Буфер недоступен — запрос в поле ниже, скопируйте его вручную (Ctrl+A, Ctrl+C), затем очистите поле.'; }
   };
-  $('#ai-mok').onclick = () => { const r = $('#ai-mr');
-    try { const arr = aiParse($('#ai-mans').value, true); let k = 0;
-      for (const o of arr){ const m = AI.manual[+o.id]; if (!m) continue; AI.drafts[+o.id] = aiDraft(m.n, m.tasks, {...o, _model: 'ручной режим'}); k++; }
-      AI.save(); r.className = k ? 'ok small' : 'err small'; r.textContent = k ? `Принято черновиков: ${k}. Закройте окно — они в очереди «На проверку».` : 'Не найдено ни одной работы из запроса. Сначала нажмите «Скопировать запрос».'; if (k) $('#ai-mans').value = ''; }
+  $('#ai-mok').onclick = async () => { const r = $('#ai-mr');
+    try { const arr = aiParse($('#ai-mans').value, true); let k = 0, skip = 0;
+      r.className = 'small'; r.textContent = 'Обрабатываю…';
+      for (const o of arr){ const id = +o.id; let m = AI.manual[id];
+        if (!m){ const x = QUEUE.find(q => q.id === id); /* ответ без «Скопировать запрос» в этой странице: берём работу из очереди */
+          if (!x){ skip++; continue; }
+          try { const n = nx(x); m = {n, tasks: await aiTasks(n)}; } catch(e){ skip++; continue; } }
+        AI.drafts[id] = aiDraft(m.n, m.tasks, {...o, _model: 'ручной режим'}); k++; }
+      AI.save(); r.className = k ? 'ok small' : 'err small';
+      r.textContent = k ? `Принято черновиков: ${k}${skip ? `; пропущено ${skip} (уже проверены или не из этой дисциплины/группы)` : ''}. Закройте окно — они в очереди «На проверку».` : 'Ни одна работа из ответа не найдена в очереди «На проверку» — возможно, они уже проверены или выбрана другая дисциплина/группа.';
+      if (k) $('#ai-mans').value = ''; }
     catch(e){ r.className = 'err small'; r.textContent = e.message; } };
 }
 function csv(){
