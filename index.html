@@ -1839,7 +1839,8 @@ function renderForm(){
   $('#r-form').innerHTML = h;
   // extra grid rows saved
   w.items.filter(it => it.type === 'grid' && !it.fixed).forEach(it => { const n = (d[it.id] || []).length; for (let r = it.rows; r < n; r++) addRow(it, false); });
-  refreshAuto(); updateProgress();
+  try { updateProgress(); } catch(e){ console.error('progress', e); }
+  refreshAuto();
 }
 function addRow(it, focus){
   const tb = $(`#r-form input[data-g="${it.id}"]`).closest('tbody'), r = tb.rows.length;
@@ -1851,7 +1852,7 @@ $('#r-form').addEventListener('input', e => {
   const t = e.target, d = W();
   if (t.dataset.f){ d[t.dataset.f] = t.value; }
   else if (t.dataset.g){ const g = d[t.dataset.g] = d[t.dataset.g] || []; const r = +t.dataset.r; g[r] = g[r] || []; g[r][+t.dataset.c] = t.value; }
-  saveRep(); updateProgress();
+  saveRep(); try { updateProgress(); } catch(e){ console.error('progress', e); }
 });
 /* --- запрет вставки: поля отчёта студент набирает сам --- */
 const isField = t => t && (t.dataset?.f || t.dataset?.g);
@@ -1927,6 +1928,10 @@ function chartImg(opts, w=640, h=240){ const cv = document.createElement('canvas
 const Pp = (text, o={}) => ({t:'p', runs:[{text:String(text ?? ''), b:o.b, i:o.i}], align:o.align, size:o.size, before:o.before, after:o.after});
 const Tb = (head, rows) => ({t:'table', head, rows: rows.map(r => r.map(x => String(x ?? '')))});
 function auto(id){
+  try { return autoRaw(id); }
+  catch(e){ console.error('auto block ' + id, e); return [Pp('Блок «' + id + '» не удалось сформировать автоматически (' + (e && e.message || 'ошибка') + '). Нажмите «Очистить поля этой работы» или обновите страницу (Ctrl+F5); если повторится — сообщите преподавателю.', {i:true})]; }
+}
+function autoRaw(id){
   if (['res4','cons4','res5','res6','scen6','surf6'].includes(id)) return auto456(id);
   if (['cmp7','res7','log7'].includes(id)) return auto7(id);
   if (['res8','log8','res9','hor9','coef9','log9'].includes(id)) return auto89(id);
