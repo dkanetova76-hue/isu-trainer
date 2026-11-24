@@ -114,6 +114,8 @@
 @media (prefers-color-scheme: dark){.pg-ch{background:#18202a;color:#e6ebf0}.pg-cc{border-color:#2c3743}}`;
   async function myCourses(){
     const ids = new Set([ID]), cnt = {}; let grpKnown = false;
+    /* студент не читает таблицу groups напрямую, поэтому дисциплины группы берём через функцию my_courses() (SQL my-courses.sql) */
+    try { const r = await SB.rpc('my_courses'); (r.data || []).forEach(x => { const c = (x && x.course) || x; if (typeof c === 'string') ids.add(c); }); } catch(err){}
     try { const {data} = await SB.from('groups').select('course').eq('name', ME.grp); (data || []).forEach(g => { ids.add(g.course || 'isu'); grpKnown = true; }); } catch(err){}
     try { const {data} = await SB.from('submissions').select('user_id,course:data->>course').eq('user_id', ME.id).limit(3000); (data || []).forEach(x => { const c = x.course || 'isu'; ids.add(c); cnt[c] = (cnt[c] || 0) + 1; }); } catch(err){}
     if (!grpKnown && (ID === 'isu' || ID === 'ct')){ ids.add('isu'); ids.add('ct'); } /* группы не видны студенту — бакалаврские учебники 710500 */
